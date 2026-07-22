@@ -152,7 +152,7 @@ with other applications.
 
 ## 10. Auth token strategy
 
-- **Access token:** JWT, 120 second TTL, claims `sub`, `role`, `username`,
+- **Access token:** JWT, 15 minute TTL, claims `sub`, `role`, `username`,
   `iat`, `exp` — short-lived and stateless, verified without a DB round-trip
   on every protected request.
 - **Refresh token:** opaque random string, 72 hour TTL, stored **hashed** in
