@@ -1,0 +1,74 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Support;
+
+/**
+ * Small input-validation helpers returning a human-readable error string (422
+ * payload) or null when valid. Length limits are expressed in characters to
+ * match MySQL's VARCHAR(n) semantics, so over-long input is rejected as 422
+ * rather than overflowing a column and surfacing as a 500.
+ */
+trait ValidatesInput
+{
+    private function validateRequiredString(mixed $value, string $field, int $maxChars, int $minChars = 1): ?string
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return "$field is required";
+        }
+
+        $length = mb_strlen(trim($value));
+
+        if ($length < $minChars) {
+            return "$field must be at least $minChars characters";
+        }
+
+        if ($length > $maxChars) {
+            return "$field must be at most $maxChars characters";
+        }
+
+        return null;
+    }
+
+    /**
+     * Optional free-text: absent/null is valid; when present it must fit maxChars.
+     */
+    private function validateOptionalString(mixed $value, string $field, int $maxChars): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (!is_string($value)) {
+            return "$field must be a string";
+        }
+
+        if (mb_strlen(trim($value)) > $maxChars) {
+            return "$field must be at most $maxChars characters";
+        }
+
+        return null;
+    }
+
+    /**
+     * Passwords are not trimmed (surrounding whitespace may be intentional) and
+     * are capped at 72 bytes, beyond which bcrypt silently truncates.
+     */
+    private function validatePassword(mixed $value, string $field = 'password'): ?string
+    {
+        if (!is_string($value) || $value === '') {
+            return "$field is required";
+        }
+
+        if (mb_strlen($value) < 8) {
+            return "$field must be at least 8 characters";
+        }
+
+        if (strlen($value) > 72) {
+            return "$field must be at most 72 bytes";
+        }
+
+        return null;
+    }
+}

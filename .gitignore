@@ -1,0 +1,19 @@
+# Gradle
+.gradle
+build/
+
+# Kotlin
+.kotlin
+
+# Kotlin/JS & Kotlin/Wasm (Compose for Web)
+kotlin-js-store/
+node_modules/
+
+# IntelliJ IDEA
+.idea/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

@@ -1,0 +1,23 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: house-points-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-house_points}
+      MYSQL_USER: ${DB_USER:-house_points}
+      MYSQL_PASSWORD: ${DB_PASS:-change-me}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-root-change-me}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASS:-root-change-me}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:

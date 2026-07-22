@@ -1,0 +1,116 @@
+# Frontend Architecture
+
+This document describes the frontend architecture as configured in
+`front/build.gradle.kts`. See `SPECS.md` at the repo root for the functional
+specification (§6 covers the web client) and `back/ARCHITECTURE.md` for the
+API it talks to. Where a point is inferred from dependencies rather than
+stated by the spec, it is marked as such.
+
+## 1. Language & UI toolkit: Kotlin Multiplatform + Compose
+
+- **Kotlin Multiplatform** (`kotlin("multiplatform")`, Kotlin `2.4.10`) with a
+  shared `commonMain` holding the bulk of the code.
+- **Compose Multiplatform** (`org.jetbrains.compose` `1.11.1`, plus the
+  `kotlin("plugin.compose")` compiler plugin) for the entire UI, declared once
+  in common code and rendered on every target.
+
+Compose UI dependencies pulled in `commonMain`: `foundation`, `runtime`, `ui`,
+`components-resources` (bundled resources), `material3` (`1.11.0-alpha07`),
+and `material-icons-extended` (`1.7.3`).
+
+## 2. Targets
+
+Three Kotlin targets are configured:
+
+| Target | Declaration | Notes |
+|---|---|---|
+| Browser (Wasm) | `wasmJs { browser() }` | `binaries.executable()`; primary shipped web target |
+| Browser (JS) | `js { browser(); useCommonJs() }` | `binaries.executable()`; JS fallback for browsers without Wasm |
+| Desktop (JVM) | `jvm("desktop")` | **Development only** — a Compose Hot-Reload harness, not a shipped artifact; `mainClass = "MainKt"` via the Compose `application` block |
+
+The shipped client is **Compose for Web (Wasm & JS)** per `SPECS.md §6`,
+provided by the `wasmJs` + `js` browser targets. The desktop (JVM) target
+exists solely to run the UI under Compose Hot-Reload during development (fast
+iteration on composables without a browser rebuild); it is not a deliverable,
+so there is no conflict with the spec's "no native Desktop builds" scope.
+
+## 3. Source-set layout
+
+```
+src/
+  commonMain/kotlin   # shared UI + logic for all targets
+  desktopMain/kotlin  # JVM-desktop specifics
+  webMain/kotlin      # shared between wasmJs and js
+```
+
+`webMain` is an intermediate source set (from Kotlin's default hierarchy
+template) that groups the two browser targets, so Wasm- and JS-common code
+(e.g. the browser Ktor engine) is written once. `desktopMain` carries the
+JVM-only pieces.
+
+## 4. Navigation: Navigation3
+
+- `androidx.navigation3:navigation3-runtime` and
+  `org.jetbrains.androidx.navigation3:navigation3-ui` (`1.1.1`).
+- Integrated with lifecycle via
+  `lifecycle-viewmodel-navigation3`, so navigation entries can own
+  `ViewModel`s.
+
+*(Inferred)* This backs the distinct screens described in `SPECS.md §6` —
+admin, teacher, public, and the public display view.
+
+## 5. State & lifecycle: AndroidX Lifecycle (multiplatform)
+
+`org.jetbrains.androidx.lifecycle` (`2.11.0-beta01`):
+`lifecycle-viewmodel-compose`, `lifecycle-viewmodel-navigation3`, and
+`lifecycle-runtime-compose`. This provides `ViewModel`-scoped state holders and
+lifecycle-aware Compose integration — the presentation layer between the UI and
+the networking/DI layers.
+
+## 6. Dependency injection: Kodein-DI
+
+`org.kodein.di:kodein-di` and `kodein-di-framework-compose` (`7.33.0`) —
+constructor-style DI with Compose-aware helpers for injecting into composables
+(mirroring the backend's explicit-wiring philosophy rather than reflection-heavy
+containers).
+
+## 7. Networking: Ktor client
+
+Shared client config in `commonMain`:
+`ktor-client-core`, `ktor-client-auth`, `ktor-client-content-negotiation`, and
+`ktor-serialization-kotlinx-json` (Ktor `3.5.1`). Engines are per-target:
+
+| Source set | Engine |
+|---|---|
+| `desktopMain` | `ktor-client-okhttp` |
+| `webMain` | `ktor-client-js` |
+
+The `ktor-client-auth` plugin is the notable piece: it maps directly onto the
+backend's auth model (`back/ARCHITECTURE.md §10`) — bearer access tokens with a
+refresh flow. *(Inferred)* it will hold the 120s JWT and transparently refresh
+via `POST /api/auth/refresh` on `401`.
+
+## 8. Serialization & date/time
+
+- **kotlinx.serialization** (`plugin.serialization` + `kotlinx-serialization-core`
+  / `-json` `1.11.0`) for typed (de)serialization of API payloads via Ktor's
+  content negotiation. This is why the backend's numeric-typing consistency
+  (e.g. `total_points` as an int) matters — these become typed Kotlin models.
+- **kotlinx-datetime** (`0.8.0`) for parsing/formatting event timestamps
+  (`created_at`) from the API.
+
+## 9. Build & toolchain notes
+
+- **JVM toolchain 25** (`jvmToolchain(25)`) — used for the desktop target and
+  build tooling.
+- The Compose `desktop.application { mainClass = "MainKt" }` block makes the
+  desktop target runnable, which is what the Compose Hot-Reload development
+  workflow drives (see §2).
+- A local quirk in `build.gradle.kts`: the Compose plugin extension is aliased
+  (`val composeDeps = compose`) before a local `val compose = "1.11.1"` version
+  string shadows the `compose` name; `desktopMain` then uses
+  `composeDeps.desktop.currentOs` for the desktop artifacts.
+- Dependency versions (including `material3 1.11.0-alpha07`,
+  `lifecycle 2.11.0-beta01`, and `material-icons-extended 1.7.3`) are the
+  versions required for compatibility with this Compose Multiplatform release —
+  the differing numbers are the correct per-artifact versions, not a mismatch.
