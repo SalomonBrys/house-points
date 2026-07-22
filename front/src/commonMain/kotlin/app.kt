@@ -1,7 +1,11 @@
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import org.kodein.di.compose.withDI
 
 @Composable
 fun App() {
-    Text("Hello, Compose Multiplatform!")
+    withDI(appDI) {
+        AppTheme {
+            AppRoot()
+        }
+    }
 }

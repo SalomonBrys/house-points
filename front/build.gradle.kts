@@ -27,6 +27,7 @@ kotlin {
         val composeDeps = compose
 
         val compose = "1.11.1"
+        val coroutines = "1.11.0"
         val nav3 = "1.1.1"
         val lifecycle = "2.11.0-beta01"
         val kodein = "7.33.0"
@@ -38,8 +39,11 @@ kotlin {
             implementation("org.jetbrains.compose.runtime:runtime:$compose")
             implementation("org.jetbrains.compose.ui:ui:$compose")
             implementation("org.jetbrains.compose.components:components-resources:$compose")
+
             implementation("org.jetbrains.compose.material3:material3:1.11.0-alpha07")
             implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
+
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines")
 
             implementation("androidx.navigation3:navigation3-runtime:$nav3")
             implementation("org.jetbrains.androidx.navigation3:navigation3-ui:$nav3")
@@ -65,6 +69,7 @@ kotlin {
         val desktopMain by getting
         desktopMain.dependencies {
             implementation(composeDeps.desktop.currentOs)
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:${coroutines}")
             implementation("io.ktor:ktor-client-okhttp:${ktor}")
         }
 

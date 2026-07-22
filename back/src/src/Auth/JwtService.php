@@ -13,7 +13,7 @@ final class JwtService
 
     public function __construct(
         private readonly string $secret,
-        private readonly int $ttl = 120,
+        private readonly int $ttl = 900,
     ) {
     }
 

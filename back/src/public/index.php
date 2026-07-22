@@ -35,7 +35,7 @@ $pdo = Database::connect([
 
 $jwtService = new JwtService(
     secret: $_ENV['JWT_SECRET'] ?? '',
-    ttl: (int) ($_ENV['JWT_TTL'] ?? 120),
+    ttl: (int) ($_ENV['JWT_TTL'] ?? 900),
 );
 
 $userRepository = new UserRepository($pdo);

@@ -88,7 +88,7 @@ no trace is kept, and the house total simply no longer includes it.
 
 ## 4. Authentication
 
-- **Access token**: JWT, **120 second TTL**. Claims: `sub` (user id), `role`,
+- **Access token**: JWT, **15 minute TTL**. Claims: `sub` (user id), `role`,
   `username`, `iat`, `exp`.
 - **Refresh token**: opaque random string, **72 hour TTL**, stored server-side
   (hashed) in `hp_refresh_tokens` so it can be revoked. On every refresh, the old
@@ -96,7 +96,7 @@ no trace is kept, and the house total simply no longer includes it.
   to make a long-lived, DB-backed refresh token safer against replay if it
   ever leaks.
 - Logging out revokes the refresh token immediately; the access token still
-  naturally expires within 120 seconds regardless.
+  naturally expires within 15 minutes regardless.
 
 ## 5. API
 
@@ -141,6 +141,10 @@ refine as needed during implementation.
 A single Kotlin Compose Multiplatform app targeting **Compose for Web
 (Wasm & Js)**, served over HTTP and used from any phone or PC browser — no
 installable native app.
+
+The UI is **French only**. There is no language switcher and no English
+fallback; every displayed string is authored in French from the start (see
+`front/ARCHITECTURE.md` for how this is enforced in code).
 
 Views:
 - **Admin view** (authenticated, role=admin): manage houses and teacher

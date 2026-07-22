@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App is French-only (see SPECS.md); this is the sole (unqualified) values/
+         file, not a locale override, so there is no English fallback to keep in sync.
+         Apostrophes are left unescaped: unlike Android, this parser takes them
+         literally — a backslash before one is kept as a literal character. -->
+
+    <!-- Screen / window titles -->
+    <string name="app_name">Points des Maisons</string>
+    <string name="public_display_title">Points des Maisons — Affichage</string>
+    <string name="login_title">Connexion</string>
+    <string name="history_title">Historique</string>
+    <string name="teacher_title">Enseignant</string>
+    <string name="admin_title">Administrateur</string>
+
+    <!-- Navigation drawer -->
+    <string name="drawer_leaderboard">Classement</string>
+    <string name="drawer_public_display">Affichage public</string>
+    <string name="drawer_logout">Déconnexion</string>
+    <string name="nav_back">Retour</string>
+    <string name="nav_open_menu">Ouvrir le menu de navigation</string>
+
+    <!-- Login screen -->
+    <string name="label_username">Nom d'utilisateur</string>
+    <string name="label_password">Mot de passe</string>
+    <string name="action_log_in">Se connecter</string>
+    <string name="error_username_password_required">Le nom d'utilisateur et le mot de passe sont requis.</string>
+    <string name="error_login_failed">Échec de la connexion.</string>
+    <string name="error_malformed_token">Jeton d'accès invalide.</string>
+
+    <!-- Public / leaderboard screen -->
+    <string name="action_retry">Réessayer</string>
+    <string name="public_no_houses">Aucune maison pour le moment.</string>
+    <string name="public_load_error">Impossible de charger les maisons : %1$s</string>
+    <string name="house_rank">#%1$d</string>
+    <string name="house_points">%1$d pts</string>
+
+    <!-- Role home stubs -->
+    <string name="welcome_message">Bienvenue, %1$s.</string>
+    <string name="teacher_coming_soon">L'attribution et l'annulation de points arrivent bientôt.</string>
+    <string name="admin_coming_soon">La gestion des maisons et des comptes enseignants arrive bientôt.</string>
+    <string name="history_coming_soon">L'historique des événements arrive bientôt.</string>
+    <string name="public_display_coming_soon">L'affichage public à actualisation automatique arrive bientôt.</string>
+
+    <!-- Repository fallback error messages (used only when the backend's own
+         error body can't be read; the backend's own {"error": "..."} text,
+         when present, is shown verbatim and is not covered by this catalog). -->
+    <string name="error_load_houses">Échec du chargement des maisons.</string>
+    <string name="error_create_house">Échec de la création de la maison.</string>
+    <string name="error_remove_house">Échec de la suppression de la maison.</string>
+    <string name="error_load_events">Échec du chargement des événements.</string>
+    <string name="error_poll_events">Échec de la récupération des événements.</string>
+    <string name="error_record_points">Échec de l'enregistrement des points.</string>
+    <string name="error_void_event">Échec de l'annulation de l'événement.</string>
+    <string name="error_create_user">Échec de la création de l'utilisateur.</string>
+    <string name="error_remove_user">Échec de la suppression de l'utilisateur.</string>
+</resources>

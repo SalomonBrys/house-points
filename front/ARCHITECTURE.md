@@ -87,7 +87,7 @@ Shared client config in `commonMain`:
 
 The `ktor-client-auth` plugin is the notable piece: it maps directly onto the
 backend's auth model (`back/ARCHITECTURE.md §10`) — bearer access tokens with a
-refresh flow. *(Inferred)* it will hold the 120s JWT and transparently refresh
+refresh flow. *(Inferred)* it will hold the 15-minute JWT and transparently refresh
 via `POST /api/auth/refresh` on `401`.
 
 ## 8. Serialization & date/time
@@ -114,3 +114,31 @@ via `POST /api/auth/refresh` on `401`.
   `lifecycle 2.11.0-beta01`, and `material-icons-extended 1.7.3`) are the
   versions required for compatibility with this Compose Multiplatform release —
   the differing numbers are the correct per-artifact versions, not a mismatch.
+
+## 10. Localization: Compose Multiplatform resources, French only
+
+Per `SPECS.md §6`, the app is **French only** — no language switcher, no
+English fallback. That's still implemented through the standard i18n
+mechanism rather than as inline literals, so the app is a straightforward
+translation job (add a `values-xx/strings.xml`) if that ever changes.
+
+- Every displayed string — screen/window titles, button and field labels,
+  drawer items, content descriptions, and error messages — is a Compose
+  Multiplatform string resource, not a Kotlin string literal. They live in
+  `front/src/commonMain/composeResources/values/strings.xml`, and are read via
+  `stringResource(Res.string.xxx)` in `@Composable` code or the suspend
+  `getString(Res.string.xxx)` in repository/`ViewModel` code that isn't
+  composable (e.g. a network-error fallback message).
+- The `values/` directory is **unqualified** (no `values-fr/`): since French
+  is the only supported locale, it *is* the default, not an override. Adding a
+  second language later means adding `values-<locale>/strings.xml` next to it
+  — the lookup/fallback mechanism is already in place, nothing in the Kotlin
+  code changes.
+- **Not covered by this catalog:** text the backend controls — the PHP API's
+  `{"error": "..."}` bodies (`back/ARCHITECTURE.md`) — is shown verbatim when
+  present, and platform/library exception messages (e.g. a Ktor network
+  failure) surface as-is when there's no app-level fallback string to use
+  instead. Translating those is a backend-side or case-by-case concern, not
+  something the client's resource catalog can cover.
+- User-entered data (house names, display names, teacher comments) is never
+  routed through string resources — only *our* authored UI copy is.
