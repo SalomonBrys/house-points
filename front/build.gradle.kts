@@ -5,6 +5,7 @@ plugins {
     kotlin("plugin.compose") version "2.4.10"
     kotlin("plugin.serialization") version "2.4.10"
     id("org.jetbrains.compose") version "1.11.1"
+    id("com.github.gmazzo.buildconfig") version "6.0.10"
 }
 
 kotlin {
@@ -75,6 +76,7 @@ kotlin {
 
         webMain.dependencies {
             implementation("io.ktor:ktor-client-js:${ktor}")
+            implementation("org.jetbrains.kotlinx:kotlinx-browser:0.5.0")
         }
     }
 }
@@ -85,4 +87,26 @@ compose {
             mainClass = "MainKt"
         }
     }
+}
+
+// API base URL, set at build time via `-PApiUrl=<url>`:
+//   - unset            -> local-dev default (http://localhost:8080)
+//   - "by-url"          -> null; the app derives it from window.location at
+//                         runtime instead (same-origin prod deployment)
+//   - anything else     -> used verbatim
+val apiUrlProperty = providers.gradleProperty("ApiUrl").orNull
+
+val apiUrlValue: String? = when (apiUrlProperty) {
+    null -> "http://localhost:8080"
+    "by-url" -> null
+    else -> apiUrlProperty
+}
+
+buildConfig {
+    packageName("") // root package, matching this project's package-less convention
+    // Using the plain (type: String, name: String, value: Serializable?) member
+    // directly, rather than the `buildConfigField<String>(name, value)` sugar
+    // extension — that extension failed to resolve from this script (only the
+    // Action-based member overload was found), so this sidesteps it.
+    buildConfigField("String?", "API_URL", apiUrlValue)
 }

@@ -15,6 +15,13 @@ data class House(
 )
 
 @Serializable
+data class Teacher(
+    val id: Int,
+    val username: String,
+    @SerialName("display_name") val displayName: String,
+)
+
+@Serializable
 data class PointEvent(
     val id: Int,
     @SerialName("house_id") val houseId: Int,

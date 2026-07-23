@@ -142,3 +142,38 @@ translation job (add a `values-xx/strings.xml`) if that ever changes.
   something the client's resource catalog can cover.
 - User-entered data (house names, display names, teacher comments) is never
   routed through string resources — only *our* authored UI copy is.
+
+## 11. API URL: build-time-configurable via `com.github.gmazzo.buildconfig`
+
+The backend URL is not hardcoded — it's resolved once at runtime from a
+generated `BuildConfig.API_URL: String?` (`com.github.gmazzo.buildconfig`
+plugin, `6.0.10`), itself driven by an `ApiUrl` Gradle property
+(`-PApiUrl=...`), configured in `front/build.gradle.kts`:
+
+| `-PApiUrl=...` | `BuildConfig.API_URL` | Resolved base URL |
+|---|---|---|
+| *(unset)* | `"http://localhost:8080"` | that value + `/api` — local-dev default |
+| `by-url` | `null` | the page's own origin (`window.location.origin`) + `/api` — same-origin prod deployment |
+| anything else | that value | that value + `/api` — explicit dev/CI-provided origin |
+
+`Config.kt`'s `API_BASE_URL` is `"${BuildConfig.API_URL ?: apiOrigin()}/api"`,
+computed lazily on first use. `apiOrigin()` is `expect`ed and only ever called
+in the `by-url` case:
+- `webMain` reads `window.location.origin` via `kotlinx-browser` (`0.5.0`) —
+  the JetBrains multiplatform successor to the classic `kotlin.browser`
+  package, usable from one shared source set across both `js` and `wasmJs`.
+- `desktopMain` throws — there's no "current page" on desktop to derive an
+  origin from, so `by-url` (or an unset `API_URL` more generally) is a build
+  misconfiguration there, not a runtime state to handle gracefully.
+
+`apiOrigin()` is a **function, not a `val`** — deliberately, unlike this
+project's other `expect`/`actual` split (`httpClientEngineFactory` in
+`ApiClientEngine.kt`). An `expect val` evaluates eagerly at module init on
+every target; since desktop's implementation always throws, that would crash
+desktop unconditionally, even when a real `API_URL` *is* configured. As a
+`fun`, it's only invoked from inside the `?:` — i.e. only when `by-url` mode
+is actually in play.
+
+The generated `BuildConfig` sits in the project's root package
+(`packageName("")`), matching this project's package-less convention, so no
+import is needed to use it from `commonMain`.

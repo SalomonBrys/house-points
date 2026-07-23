@@ -1,7 +1,6 @@
 import androidx.navigation3.runtime.NavKey
 import house_points.front.generated.resources.Res
 import house_points.front.generated.resources.admin_title
-import house_points.front.generated.resources.app_name
 import house_points.front.generated.resources.history_title
 import house_points.front.generated.resources.login_title
 import house_points.front.generated.resources.public_display_title
@@ -23,11 +22,7 @@ sealed interface Screen : NavKey {
     val titleRes: StringResource
 }
 
-@Serializable
-data object Public : Screen {
-    override val titleRes = Res.string.app_name
-}
-
+/** The app's default screen — the public house ranking, labeled "Classement". */
 @Serializable
 data object PublicDisplay : Screen {
     override val titleRes = Res.string.public_display_title

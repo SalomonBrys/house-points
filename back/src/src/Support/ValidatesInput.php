@@ -53,16 +53,18 @@ trait ValidatesInput
 
     /**
      * Passwords are not trimmed (surrounding whitespace may be intentional) and
-     * are capped at 72 bytes, beyond which bcrypt silently truncates.
+     * are capped at 72 bytes, beyond which bcrypt silently truncates. Pass
+     * minChars: 0 to skip the minimum-length check (e.g. teacher accounts,
+     * where this small project has no password-strength requirement).
      */
-    private function validatePassword(mixed $value, string $field = 'password'): ?string
+    private function validatePassword(mixed $value, string $field = 'password', int $minChars = 8): ?string
     {
         if (!is_string($value) || $value === '') {
             return "$field is required";
         }
 
-        if (mb_strlen($value) < 8) {
-            return "$field must be at least 8 characters";
+        if ($minChars > 0 && mb_strlen($value) < $minChars) {
+            return "$field must be at least $minChars characters";
         }
 
         if (strlen($value) > 72) {

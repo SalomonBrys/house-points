@@ -48,6 +48,25 @@ final class UserRepository
         return $user === false ? null : $user;
     }
 
+    /**
+     * @return array<int, array{id: int, username: string, display_name: string}>
+     */
+    public function allActiveTeachers(): array
+    {
+        $stmt = $this->pdo->query(
+            "SELECT id, username, display_name
+             FROM hp_users
+             WHERE role = 'teacher' AND active = 1
+             ORDER BY display_name"
+        );
+
+        return array_map(static fn (array $row): array => [
+            'id' => (int) $row['id'],
+            'username' => $row['username'],
+            'display_name' => $row['display_name'],
+        ], $stmt->fetchAll());
+    }
+
     public function usernameExists(string $username): bool
     {
         $stmt = $this->pdo->prepare('SELECT 1 FROM hp_users WHERE username = :username LIMIT 1');

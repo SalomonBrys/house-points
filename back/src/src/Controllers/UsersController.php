@@ -25,12 +25,17 @@ final class UsersController
     {
     }
 
+    public function index(Request $request, Response $response): Response
+    {
+        return $this->json($response, $this->users->allActiveTeachers());
+    }
+
     public function store(Request $request, Response $response): Response
     {
         $body = (array) $request->getParsedBody();
 
         $error = $this->validateRequiredString($body['username'] ?? null, 'username', self::USERNAME_MAX)
-            ?? $this->validatePassword($body['password'] ?? null)
+            ?? $this->validatePassword($body['password'] ?? null, minChars: 0)
             ?? $this->validateRequiredString($body['display_name'] ?? null, 'display_name', self::DISPLAY_NAME_MAX);
 
         if ($error !== null) {

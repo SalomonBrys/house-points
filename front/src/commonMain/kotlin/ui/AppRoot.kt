@@ -1,12 +1,14 @@
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.material3.DrawerValue
@@ -24,7 +26,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -34,13 +38,12 @@ import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import house_points.front.generated.resources.Res
 import house_points.front.generated.resources.app_name
-import house_points.front.generated.resources.drawer_leaderboard
 import house_points.front.generated.resources.drawer_logout
-import house_points.front.generated.resources.drawer_public_display
 import house_points.front.generated.resources.history_title
 import house_points.front.generated.resources.login_title
 import house_points.front.generated.resources.nav_back
 import house_points.front.generated.resources.nav_open_menu
+import house_points.front.generated.resources.public_display_title
 import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -52,7 +55,6 @@ import org.kodein.di.instance
 /** Registers every [Screen] subtype for Navigation3's polymorphic back-stack serialization. */
 private val navSerializersModule = SerializersModule {
     polymorphic(NavKey::class) {
-        subclass(Public::class, Public.serializer())
         subclass(PublicDisplay::class, PublicDisplay.serializer())
         subclass(Login::class, Login.serializer())
         subclass(History::class, History.serializer())
@@ -66,10 +68,10 @@ private val navConfig = SavedStateConfiguration { serializersModule = navSeriali
 /**
  * Top-level app shell: one shared drawer + top bar wrapping the Navigation3
  * back stack, so individual screens carry no chrome of their own. Public
- * screens (leaderboard, history, public display, login) are always reachable
+ * screens (leaderboard/[PublicDisplay], history, login) are always reachable
  * from the drawer; a successful login routes to the role's home and a logout
- * routes back to [Public] — driven by observing [Session] rather than by the
- * screens navigating themselves.
+ * routes back to [PublicDisplay] — driven by observing [Session] rather than
+ * by the screens navigating themselves.
  */
 @Composable
 fun AppRoot() {
@@ -78,7 +80,7 @@ fun AppRoot() {
     val auth = di.direct.instance<AuthRepository>()
     val authState by session.state.collectAsState()
 
-    val backStack = rememberNavBackStack(navConfig, Public)
+    val backStack = rememberNavBackStack(navConfig, PublicDisplay)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -95,7 +97,7 @@ fun AppRoot() {
             AuthState.LoggedOut -> {
                 if (backStack.lastOrNull() is TeacherHome || backStack.lastOrNull() is AdminHome) {
                     backStack.clear()
-                    backStack.add(Public)
+                    backStack.add(PublicDisplay)
                 }
             }
         }
@@ -133,23 +135,27 @@ fun AppRoot() {
                 )
             },
         ) { padding ->
-            NavDisplay(
-                backStack = backStack,
+            Box(
                 modifier = Modifier.padding(padding).fillMaxSize(),
-                onBack = { backStack.removeLastOrNull() },
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
-                ),
-                entryProvider = entryProvider {
-                    entry<Public> { PublicScreen() }
-                    entry<Login> { LoginScreen() }
-                    entry<History> { HistoryScreen() }
-                    entry<PublicDisplay> { PublicDisplayScreen() }
-                    entry<TeacherHome> { TeacherScreen() }
-                    entry<AdminHome> { AdminScreen() }
-                },
-            )
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                NavDisplay(
+                    backStack = backStack,
+                    modifier = Modifier.widthIn(max = 840.dp).fillMaxSize(),
+                    onBack = { backStack.removeLastOrNull() },
+                    entryDecorators = listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                    ),
+                    entryProvider = entryProvider {
+                        entry<Login> { LoginScreen() }
+                        entry<History> { HistoryScreen() }
+                        entry<PublicDisplay> { PublicDisplayScreen() }
+                        entry<TeacherHome> { TeacherScreen() }
+                        entry<AdminHome> { AdminScreen() }
+                    },
+                )
+            }
         }
     }
 }
@@ -186,22 +192,16 @@ private fun AppDrawerContent(
 ) {
     ModalDrawerSheet {
         NavigationDrawerItem(
-            label = { Text(stringResource(Res.string.drawer_leaderboard)) },
-            icon = { Icon(Icons.Filled.Leaderboard, contentDescription = null) },
-            selected = currentScreen == Public,
-            onClick = { onNavigate(Public) },
+            label = { Text(stringResource(Res.string.public_display_title)) },
+            icon = { Icon(Icons.Filled.Slideshow, contentDescription = null) },
+            selected = currentScreen == PublicDisplay,
+            onClick = { onNavigate(PublicDisplay) },
         )
         NavigationDrawerItem(
             label = { Text(stringResource(Res.string.history_title)) },
             icon = { Icon(Icons.Filled.History, contentDescription = null) },
             selected = currentScreen == History,
             onClick = { onNavigate(History) },
-        )
-        NavigationDrawerItem(
-            label = { Text(stringResource(Res.string.drawer_public_display)) },
-            icon = { Icon(Icons.Filled.Slideshow, contentDescription = null) },
-            selected = currentScreen == PublicDisplay,
-            onClick = { onNavigate(PublicDisplay) },
         )
         when (authState) {
             AuthState.LoggedOut -> {
@@ -214,13 +214,23 @@ private fun AppDrawerContent(
             }
 
             is AuthState.LoggedIn -> {
-                val home = if (authState.role == "admin") AdminHome else TeacherHome
+                // Every account (teacher or admin) can award/void points, so the
+                // teacher page is always shown; admins additionally see their
+                // management page.
                 NavigationDrawerItem(
-                    label = { Text(stringResource(home.titleRes)) },
+                    label = { Text(stringResource(TeacherHome.titleRes)) },
                     icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
-                    selected = currentScreen == home,
-                    onClick = { onNavigate(home) },
+                    selected = currentScreen == TeacherHome,
+                    onClick = { onNavigate(TeacherHome) },
                 )
+                if (authState.role == "admin") {
+                    NavigationDrawerItem(
+                        label = { Text(stringResource(AdminHome.titleRes)) },
+                        icon = { Icon(Icons.Filled.AdminPanelSettings, contentDescription = null) },
+                        selected = currentScreen == AdminHome,
+                        onClick = { onNavigate(AdminHome) },
+                    )
+                }
                 NavigationDrawerItem(
                     label = { Text(stringResource(Res.string.drawer_logout)) },
                     icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null) },

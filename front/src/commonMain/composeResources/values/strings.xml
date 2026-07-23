@@ -7,15 +7,13 @@
 
     <!-- Screen / window titles -->
     <string name="app_name">Points des Maisons</string>
-    <string name="public_display_title">Points des Maisons — Affichage</string>
+    <string name="public_display_title">Classement</string>
     <string name="login_title">Connexion</string>
     <string name="history_title">Historique</string>
     <string name="teacher_title">Enseignant</string>
     <string name="admin_title">Administrateur</string>
 
     <!-- Navigation drawer -->
-    <string name="drawer_leaderboard">Classement</string>
-    <string name="drawer_public_display">Affichage public</string>
     <string name="drawer_logout">Déconnexion</string>
     <string name="nav_back">Retour</string>
     <string name="nav_open_menu">Ouvrir le menu de navigation</string>
@@ -37,10 +35,32 @@
 
     <!-- Role home stubs -->
     <string name="welcome_message">Bienvenue, %1$s.</string>
-    <string name="teacher_coming_soon">L'attribution et l'annulation de points arrivent bientôt.</string>
-    <string name="admin_coming_soon">La gestion des maisons et des comptes enseignants arrive bientôt.</string>
     <string name="history_coming_soon">L'historique des événements arrive bientôt.</string>
-    <string name="public_display_coming_soon">L'affichage public à actualisation automatique arrive bientôt.</string>
+
+    <!-- Teacher screen -->
+    <string name="teacher_house_label">Maison</string>
+    <string name="teacher_sign_add_description">Ajouter des points</string>
+    <string name="teacher_sign_remove_description">Retirer des points</string>
+    <string name="action_validate">Valider</string>
+    <string name="action_confirm">Confirmer</string>
+    <string name="teacher_confirm_title">Confirmer la transaction ?</string>
+    <string name="teacher_points_summary">%1$s : %2$s points</string>
+    <string name="teacher_history_title">Historique de la séance</string>
+    <string name="teacher_history_empty">Aucune transaction pour le moment.</string>
+
+    <!-- Admin screen -->
+    <string name="admin_houses_section">Maisons</string>
+    <string name="admin_teachers_section">Enseignants</string>
+    <string name="admin_house_name">Nom de la maison</string>
+    <string name="label_display_name">Nom affiché</string>
+    <string name="action_add">Ajouter</string>
+    <string name="action_delete">Supprimer</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="admin_no_teachers">Aucun enseignant pour le moment.</string>
+    <string name="admin_confirm_delete_house_title">Supprimer la maison ?</string>
+    <string name="admin_confirm_delete_house_message">Voulez-vous vraiment supprimer la maison « %1$s » ?</string>
+    <string name="admin_confirm_delete_teacher_title">Supprimer l'enseignant ?</string>
+    <string name="admin_confirm_delete_teacher_message">Voulez-vous vraiment supprimer le compte de « %1$s » ?</string>
 
     <!-- Repository fallback error messages (used only when the backend's own
          error body can't be read; the backend's own {"error": "..."} text,
@@ -54,4 +74,5 @@
     <string name="error_void_event">Échec de l'annulation de l'événement.</string>
     <string name="error_create_user">Échec de la création de l'utilisateur.</string>
     <string name="error_remove_user">Échec de la suppression de l'utilisateur.</string>
+    <string name="error_load_users">Échec du chargement des enseignants.</string>
 </resources>
