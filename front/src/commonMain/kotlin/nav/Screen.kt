@@ -24,7 +24,7 @@ sealed interface Screen : NavKey {
 
 /** The app's default screen — the public house ranking, labeled "Classement". */
 @Serializable
-data object PublicDisplay : Screen {
+data object Leaderboard : Screen {
     override val titleRes = Res.string.public_display_title
 }
 

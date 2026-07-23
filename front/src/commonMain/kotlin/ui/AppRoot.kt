@@ -1,5 +1,7 @@
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
@@ -28,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -55,7 +58,7 @@ import org.kodein.di.instance
 /** Registers every [Screen] subtype for Navigation3's polymorphic back-stack serialization. */
 private val navSerializersModule = SerializersModule {
     polymorphic(NavKey::class) {
-        subclass(PublicDisplay::class, PublicDisplay.serializer())
+        subclass(Leaderboard::class, Leaderboard.serializer())
         subclass(Login::class, Login.serializer())
         subclass(History::class, History.serializer())
         subclass(TeacherHome::class, TeacherHome.serializer())
@@ -68,9 +71,9 @@ private val navConfig = SavedStateConfiguration { serializersModule = navSeriali
 /**
  * Top-level app shell: one shared drawer + top bar wrapping the Navigation3
  * back stack, so individual screens carry no chrome of their own. Public
- * screens (leaderboard/[PublicDisplay], history, login) are always reachable
+ * screens (leaderboard/[Leaderboard], history, login) are always reachable
  * from the drawer; a successful login routes to the role's home and a logout
- * routes back to [PublicDisplay] — driven by observing [Session] rather than
+ * routes back to [Leaderboard] — driven by observing [Session] rather than
  * by the screens navigating themselves.
  */
 @Composable
@@ -80,7 +83,7 @@ fun AppRoot() {
     val auth = di.direct.instance<AuthRepository>()
     val authState by session.state.collectAsState()
 
-    val backStack = rememberNavBackStack(navConfig, PublicDisplay)
+    val backStack = rememberNavBackStack(navConfig, Leaderboard)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -97,7 +100,7 @@ fun AppRoot() {
             AuthState.LoggedOut -> {
                 if (backStack.lastOrNull() is TeacherHome || backStack.lastOrNull() is AdminHome) {
                     backStack.clear()
-                    backStack.add(PublicDisplay)
+                    backStack.add(Leaderboard)
                 }
             }
         }
@@ -132,6 +135,7 @@ fun AppRoot() {
                     canPop = backStack.size > 1,
                     onBack = { backStack.removeLastOrNull() },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
+                    actions = { if (currentScreen is Leaderboard) LeaderboardTopBarActions() },
                 )
             },
         ) { padding ->
@@ -139,9 +143,16 @@ fun AppRoot() {
                 modifier = Modifier.padding(padding).fillMaxSize(),
                 contentAlignment = Alignment.TopCenter,
             ) {
+                // Classement wants the full window width (e.g. to fit more
+                // grid columns); every other screen keeps the readable-width cap.
+                val contentWidthModifier = if (currentScreen is Leaderboard) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier.widthIn(max = 840.dp)
+                }
                 NavDisplay(
                     backStack = backStack,
-                    modifier = Modifier.widthIn(max = 840.dp).fillMaxSize(),
+                    modifier = contentWidthModifier.fillMaxSize(),
                     onBack = { backStack.removeLastOrNull() },
                     entryDecorators = listOf(
                         rememberSaveableStateHolderNavEntryDecorator(),
@@ -150,7 +161,7 @@ fun AppRoot() {
                     entryProvider = entryProvider {
                         entry<Login> { LoginScreen() }
                         entry<History> { HistoryScreen() }
-                        entry<PublicDisplay> { PublicDisplayScreen() }
+                        entry<Leaderboard> { LeaderboardScreen() }
                         entry<TeacherHome> { TeacherScreen() }
                         entry<AdminHome> { AdminScreen() }
                     },
@@ -166,9 +177,16 @@ private fun AppTopBar(
     canPop: Boolean,
     onBack: () -> Unit,
     onOpenDrawer: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     TopAppBar(
-        title = { Text(title) },
+        title = {
+            Text(
+                text = title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
         navigationIcon = {
             if (canPop) {
                 IconButton(onClick = onBack) {
@@ -180,6 +198,7 @@ private fun AppTopBar(
                 }
             }
         },
+        actions = actions,
     )
 }
 
@@ -194,8 +213,8 @@ private fun AppDrawerContent(
         NavigationDrawerItem(
             label = { Text(stringResource(Res.string.public_display_title)) },
             icon = { Icon(Icons.Filled.Slideshow, contentDescription = null) },
-            selected = currentScreen == PublicDisplay,
-            onClick = { onNavigate(PublicDisplay) },
+            selected = currentScreen == Leaderboard,
+            onClick = { onNavigate(Leaderboard) },
         )
         NavigationDrawerItem(
             label = { Text(stringResource(Res.string.history_title)) },

@@ -15,4 +15,5 @@ val appDI = DI {
     bindSingleton { HousesRepository(instance()) }
     bindSingleton { EventsRepository(instance()) }
     bindSingleton { UsersRepository(instance()) }
+    bindSingleton { LeaderboardConfig() }
 }

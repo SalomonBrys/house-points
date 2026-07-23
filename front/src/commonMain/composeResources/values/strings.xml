@@ -30,8 +30,16 @@
     <string name="action_retry">Réessayer</string>
     <string name="public_no_houses">Aucune maison pour le moment.</string>
     <string name="public_load_error">Impossible de charger les maisons : %1$s</string>
-    <string name="house_rank">#%1$d</string>
     <string name="house_points">%1$d pts</string>
+    <string name="public_display_sort_description">Trier</string>
+    <string name="public_display_refresh_description">Actualiser</string>
+    <string name="public_display_settings_show">Afficher les réglages d'affichage</string>
+    <string name="public_display_sort_by_name">Nom</string>
+    <string name="public_display_sort_by_points">Points</string>
+    <string name="public_display_columns_decrease">Réduire le nombre de maisons par ligne</string>
+    <string name="public_display_columns_increase">Augmenter le nombre de maisons par ligne</string>
+    <string name="public_display_font_decrease">Réduire la taille du texte</string>
+    <string name="public_display_font_increase">Augmenter la taille du texte</string>
 
     <!-- Role home stubs -->
     <string name="welcome_message">Bienvenue, %1$s.</string>
