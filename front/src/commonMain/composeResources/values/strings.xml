@@ -43,7 +43,15 @@
 
     <!-- Role home stubs -->
     <string name="welcome_message">Bienvenue, %1$s.</string>
-    <string name="history_coming_soon">L'historique des événements arrive bientôt.</string>
+
+    <!-- History screen -->
+    <string name="history_title_filtered">Historique — %1$s</string>
+    <string name="history_filter_description">Filtrer</string>
+    <string name="history_filter_all">Tout afficher</string>
+    <string name="history_filter_houses_section">Maisons</string>
+    <string name="history_filter_teachers_section">Enseignants</string>
+    <string name="history_empty">Aucun événement pour le moment.</string>
+    <string name="history_load_more">Charger plus</string>
 
     <!-- Teacher screen -->
     <string name="teacher_house_label">Maison</string>

@@ -16,4 +16,5 @@ val appDI = DI {
     bindSingleton { EventsRepository(instance()) }
     bindSingleton { UsersRepository(instance()) }
     bindSingleton { LeaderboardConfig() }
+    bindSingleton { HistoryFilter() }
 }

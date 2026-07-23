@@ -56,7 +56,7 @@ final class UserRepository
         $stmt = $this->pdo->query(
             "SELECT id, username, display_name
              FROM hp_users
-             WHERE role = 'teacher' AND active = 1
+             WHERE active = 1
              ORDER BY display_name"
         );
 

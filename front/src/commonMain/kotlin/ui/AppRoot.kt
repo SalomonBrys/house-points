@@ -43,6 +43,7 @@ import house_points.front.generated.resources.Res
 import house_points.front.generated.resources.app_name
 import house_points.front.generated.resources.drawer_logout
 import house_points.front.generated.resources.history_title
+import house_points.front.generated.resources.history_title_filtered
 import house_points.front.generated.resources.login_title
 import house_points.front.generated.resources.nav_back
 import house_points.front.generated.resources.nav_open_menu
@@ -82,6 +83,8 @@ fun AppRoot() {
     val session = di.direct.instance<Session>()
     val auth = di.direct.instance<AuthRepository>()
     val authState by session.state.collectAsState()
+    val historyFilter = di.direct.instance<HistoryFilter>()
+    val historyFilterSelection by historyFilter.selection.collectAsState()
 
     val backStack = rememberNavBackStack(navConfig, Leaderboard)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -130,12 +133,24 @@ fun AppRoot() {
     ) {
         Scaffold(
             topBar = {
+                val title = if (currentScreen is History) {
+                    when (val selection = historyFilterSelection) {
+                        HistoryFilterSelection.All -> stringResource(Res.string.history_title)
+                        is HistoryFilterSelection.ByHouse -> stringResource(Res.string.history_title_filtered, selection.house.name)
+                        is HistoryFilterSelection.ByTeacher -> stringResource(Res.string.history_title_filtered, selection.teacher.displayName)
+                    }
+                } else {
+                    stringResource(currentScreen?.titleRes ?: Res.string.app_name)
+                }
                 AppTopBar(
-                    title = stringResource(currentScreen?.titleRes ?: Res.string.app_name),
+                    title = title,
                     canPop = backStack.size > 1,
                     onBack = { backStack.removeLastOrNull() },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
-                    actions = { if (currentScreen is Leaderboard) LeaderboardTopBarActions() },
+                    actions = {
+                        if (currentScreen is Leaderboard) LeaderboardTopBarActions()
+                        if (currentScreen is History) HistoryTopBarActions()
+                    },
                 )
             },
         ) { padding ->
