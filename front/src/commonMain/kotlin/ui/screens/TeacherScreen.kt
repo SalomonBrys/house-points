@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -117,7 +118,7 @@ class TeacherViewModel(
             _actionError.value = null
             _submitting.value = true
             try {
-                events.addPoints(house.id, points, null)
+                events.addPoints(house.id, points)
                 _history.value = listOf(HistoryEntry(house.name, points)) + _history.value
             } catch (e: Exception) {
                 _actionError.value = e.message
@@ -211,7 +212,11 @@ fun TeacherScreen() {
                         onClick = { showConfirm = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(stringResource(Res.string.action_validate))
+                        if (submitting) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                        } else {
+                            Text(stringResource(Res.string.action_validate))
+                        }
                     }
                 }
             }

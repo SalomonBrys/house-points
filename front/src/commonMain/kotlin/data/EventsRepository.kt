@@ -46,10 +46,10 @@ class EventsRepository(private val client: HttpClient) {
         return response.body()
     }
 
-    suspend fun addPoints(houseId: Int, points: Int, comment: String?): Int {
+    suspend fun addPoints(houseId: Int, points: Int): Int {
         val response = client.post("$API_BASE_URL/houses/$houseId/points") {
             contentType(ContentType.Application.Json)
-            setBody(AddPointsRequest(points, comment))
+            setBody(AddPointsRequest(points))
         }
         if (!response.status.isSuccess()) {
             throw ApiException(response.errorMessage(getString(Res.string.error_record_points)))

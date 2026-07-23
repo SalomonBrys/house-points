@@ -27,7 +27,8 @@ data class PointEvent(
     @SerialName("house_id") val houseId: Int,
     @SerialName("teacher_id") val teacherId: Int,
     val points: Int,
-    val comment: String? = null,
+    // Always AI-generated server-side (CommentGenerator); hp_point_events.comment is NOT NULL.
+    val comment: String,
     @SerialName("created_at") val createdAt: String,
 )
 
@@ -60,7 +61,7 @@ data class RefreshRequest(@SerialName("refresh_token") val refreshToken: String)
 data class LogoutRequest(@SerialName("refresh_token") val refreshToken: String)
 
 @Serializable
-data class AddPointsRequest(val points: Int, val comment: String? = null)
+data class AddPointsRequest(val points: Int)
 
 @Serializable
 data class CreateHouseRequest(val name: String)

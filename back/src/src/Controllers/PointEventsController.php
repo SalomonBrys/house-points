@@ -6,22 +6,21 @@ namespace App\Controllers;
 
 use App\Repositories\HouseRepository;
 use App\Repositories\PointEventRepository;
+use App\Repositories\UserRepository;
+use App\Services\CommentGenerator;
 use App\Support\JsonResponder;
-use App\Support\ValidatesInput;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 final class PointEventsController
 {
     use JsonResponder;
-    use ValidatesInput;
-
-    // Matches hp_point_events.comment VARCHAR(255).
-    private const COMMENT_MAX = 255;
 
     public function __construct(
         private readonly PointEventRepository $pointEvents,
         private readonly HouseRepository $houses,
+        private readonly UserRepository $users,
+        private readonly CommentGenerator $commentGenerator,
     ) {
     }
 
@@ -31,8 +30,9 @@ final class PointEventsController
     public function store(Request $request, Response $response, array $args): Response
     {
         $houseId = (int) $args['houseId'];
+        $house = $this->houses->findActive($houseId);
 
-        if ($this->houses->findActive($houseId) === null) {
+        if ($house === null) {
             return $this->json($response, ['error' => 'House not found'], 404);
         }
 
@@ -43,16 +43,14 @@ final class PointEventsController
             return $this->json($response, ['error' => 'points must be a non-zero integer'], 422);
         }
 
-        if (($error = $this->validateOptionalString($body['comment'] ?? null, 'comment', self::COMMENT_MAX)) !== null) {
-            return $this->json($response, ['error' => $error], 422);
-        }
-
-        $comment = isset($body['comment']) && trim((string) $body['comment']) !== ''
-            ? trim((string) $body['comment'])
-            : null;
-
         $claims = $request->getAttribute('jwt');
-        $id = $this->pointEvents->create($houseId, (int) $claims['sub'], $points, $comment);
+        $teacherId = (int) $claims['sub'];
+        $teacher = $this->users->findActiveById($teacherId);
+        $teacherName = $teacher['display_name'] ?? ($claims['username'] ?? 'Un enseignant');
+
+        $comment = $this->commentGenerator->generate($teacherName, $house['name'], $points);
+
+        $id = $this->pointEvents->create($houseId, $teacherId, $points, $comment);
 
         return $this->json($response, ['id' => $id], 201);
     }

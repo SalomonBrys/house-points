@@ -12,7 +12,7 @@ final class PointEventRepository
     {
     }
 
-    public function create(int $houseId, int $teacherId, int $points, ?string $comment): int
+    public function create(int $houseId, int $teacherId, int $points, string $comment): int
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO hp_point_events (house_id, teacher_id, points, comment)
@@ -29,7 +29,7 @@ final class PointEventRepository
     }
 
     /**
-     * @return array{id: int, house_id: int, teacher_id: int, points: int, comment: ?string, created_at: string}|null
+     * @return array{id: int, house_id: int, teacher_id: int, points: int, comment: string, created_at: string}|null
      */
     public function find(int $id): ?array
     {

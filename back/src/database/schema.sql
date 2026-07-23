@@ -18,7 +18,7 @@ CREATE TABLE hp_point_events (
     house_id INT UNSIGNED NOT NULL,
     teacher_id INT UNSIGNED NOT NULL,
     points INT NOT NULL,
-    comment VARCHAR(255) NULL,
+    comment VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_point_events_points_nonzero CHECK (points <> 0),
     FOREIGN KEY (house_id) REFERENCES hp_houses(id),

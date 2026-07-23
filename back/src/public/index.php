@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Anthropic\Client as AnthropicClient;
 use App\Auth\JwtAuthMiddleware;
 use App\Auth\JwtService;
 use App\Auth\RefreshTokenService;
@@ -18,6 +19,7 @@ use App\Repositories\HouseRepository;
 use App\Repositories\PointEventRepository;
 use App\Repositories\RefreshTokenRepository;
 use App\Repositories\UserRepository;
+use App\Services\CommentGenerator;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Factory\ResponseFactory;
 
@@ -43,13 +45,21 @@ $houseRepository = new HouseRepository($pdo);
 $pointEventRepository = new PointEventRepository($pdo);
 $refreshTokenService = new RefreshTokenService(new RefreshTokenRepository($pdo));
 
+$anthropicClient = new AnthropicClient(apiKey: $_ENV['ANTHROPIC_API_KEY'] ?? '');
+$commentGenerator = new CommentGenerator($anthropicClient, __DIR__ . '/../AIPrompt.txt');
+
 $responseFactory = new ResponseFactory();
 
 $deps = [
     'auth' => new AuthController($userRepository, $jwtService, $refreshTokenService),
     'me' => new MeController($userRepository, $refreshTokenService),
     'houses' => new HousesController($houseRepository),
-    'pointEvents' => new PointEventsController($pointEventRepository, $houseRepository),
+    'pointEvents' => new PointEventsController(
+        $pointEventRepository,
+        $houseRepository,
+        $userRepository,
+        $commentGenerator,
+    ),
     'events' => new EventsController($pointEventRepository),
     'users' => new UsersController($userRepository),
     'jwtAuth' => new JwtAuthMiddleware($jwtService, $responseFactory),

@@ -32,26 +32,6 @@ trait ValidatesInput
     }
 
     /**
-     * Optional free-text: absent/null is valid; when present it must fit maxChars.
-     */
-    private function validateOptionalString(mixed $value, string $field, int $maxChars): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        if (!is_string($value)) {
-            return "$field must be a string";
-        }
-
-        if (mb_strlen(trim($value)) > $maxChars) {
-            return "$field must be at most $maxChars characters";
-        }
-
-        return null;
-    }
-
-    /**
      * Passwords are not trimmed (surrounding whitespace may be intentional) and
      * are capped at 72 bytes, beyond which bcrypt silently truncates. Pass
      * minChars: 0 to skip the minimum-length check (e.g. teacher accounts,

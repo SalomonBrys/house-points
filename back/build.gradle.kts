@@ -47,7 +47,7 @@ tasks.register<Exec>("dbDownDelete") {
     description = "Stops the MySQL container (data volume is removed)."
 
     workingDir = apiDir.asFile
-    commandLine("docker", "compose", "down")
+    commandLine("docker", "compose", "down", "-v")
 }
 
 tasks.register<Exec>("phpServe") {
