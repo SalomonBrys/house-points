@@ -40,6 +40,7 @@ return function (App $app, array $deps): void {
     $app->post('/api/auth/logout', [$deps['auth'], 'logout']);
 
     $app->get('/api/houses', [$deps['houses'], 'index']);
+    $app->get('/api/teachers', [$deps['users'], 'index']);
     $app->get('/api/events', [$deps['events'], 'index']);
     $app->get('/api/events/since', [$deps['events'], 'since']);
 
@@ -56,9 +57,8 @@ return function (App $app, array $deps): void {
     $app->group('/api', function (RouteCollectorProxy $group) use ($deps) {
         $group->post('/houses', [$deps['houses'], 'store']);
         $group->delete('/houses/{id}', [$deps['houses'], 'destroy']);
-        $group->get('/users', [$deps['users'], 'index']);
-        $group->post('/users', [$deps['users'], 'store']);
-        $group->delete('/users/{id}', [$deps['users'], 'destroy']);
+        $group->post('/teachers', [$deps['users'], 'store']);
+        $group->delete('/teachers/{id}', [$deps['users'], 'destroy']);
     })->add($deps['requireAdmin'])->add($deps['jwtAuth']);
 
     // --- Static files (everything else) ---

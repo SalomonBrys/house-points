@@ -13,10 +13,13 @@ import house_points.front.generated.resources.error_load_users
 import house_points.front.generated.resources.error_remove_user
 import org.jetbrains.compose.resources.getString
 
-/** Wraps `/api/users` — admin-only teacher/admin account management. */
+/**
+ * Wraps `/api/teachers` — `listTeachers()` is public (no auth); `create()`/`deactivate()` are
+ * admin-only account management.
+ */
 class UsersRepository(private val client: HttpClient) {
     suspend fun listTeachers(): List<Teacher> {
-        val response = client.get("$API_BASE_URL/users")
+        val response = client.get("$API_BASE_URL/teachers")
         if (!response.status.isSuccess()) {
             throw ApiException(response.errorMessage(getString(Res.string.error_load_users)))
         }
@@ -24,7 +27,7 @@ class UsersRepository(private val client: HttpClient) {
     }
 
     suspend fun create(username: String, password: String, role: String, displayName: String): Int {
-        val response = client.post("$API_BASE_URL/users") {
+        val response = client.post("$API_BASE_URL/teachers") {
             contentType(ContentType.Application.Json)
             setBody(CreateUserRequest(username, password, role, displayName))
         }
@@ -35,7 +38,7 @@ class UsersRepository(private val client: HttpClient) {
     }
 
     suspend fun deactivate(userId: Int) {
-        val response = client.delete("$API_BASE_URL/users/$userId")
+        val response = client.delete("$API_BASE_URL/teachers/$userId")
         if (!response.status.isSuccess()) {
             throw ApiException(response.errorMessage(getString(Res.string.error_remove_user)))
         }
