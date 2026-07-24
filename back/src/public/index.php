@@ -46,7 +46,7 @@ $pointEventRepository = new PointEventRepository($pdo);
 $refreshTokenService = new RefreshTokenService(new RefreshTokenRepository($pdo));
 
 $anthropicClient = new AnthropicClient(apiKey: $_ENV['ANTHROPIC_API_KEY'] ?? '');
-$commentGenerator = new CommentGenerator($anthropicClient, __DIR__ . '/../AIPrompt.txt');
+$commentGenerator = new CommentGenerator($anthropicClient, __DIR__ . '/../AIPrompt.txt', $pointEventRepository);
 
 $responseFactory = new ResponseFactory();
 

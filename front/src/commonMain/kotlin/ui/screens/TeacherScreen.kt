@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -157,87 +158,91 @@ fun TeacherScreen() {
     val amount = amountText.toIntOrNull() ?: 0
     val signedAmount = if (sign == PointsSign.ADD) amount else -amount
 
-    Column(
-        Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(stringResource(Res.string.welcome_message, username))
+    val scrollState = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.fillMaxSize().padding(16.dp).verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(stringResource(Res.string.welcome_message, username))
 
-        when (val current = state) {
-            TeacherUiState.Loading -> CircularProgressIndicator()
+            when (val current = state) {
+                TeacherUiState.Loading -> CircularProgressIndicator()
 
-            is TeacherUiState.Error -> Column {
-                Text(
-                    stringResource(Res.string.public_load_error, current.message),
-                    color = MaterialTheme.colorScheme.error,
-                )
-                Button(onClick = { viewModel.refresh() }) { Text(stringResource(Res.string.action_retry)) }
-            }
-
-            is TeacherUiState.Success -> {
-                // Never auto-pick a house — only clear a stale selection (e.g. the
-                // selected house was deactivated elsewhere and dropped on reload).
-                // Points must always be applied to a house the teacher explicitly chose.
-                LaunchedEffect(current.houses) {
-                    if (selectedHouse != null && current.houses.none { it.id == selectedHouse?.id }) {
-                        selectedHouse = null
-                    }
+                is TeacherUiState.Error -> Column {
+                    Text(
+                        stringResource(Res.string.public_load_error, current.message),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Button(onClick = { viewModel.refresh() }) { Text(stringResource(Res.string.action_retry)) }
                 }
 
-                val houseSelected = selectedHouse != null
-
-                if (current.houses.isEmpty()) {
-                    Text(stringResource(Res.string.public_no_houses))
-                } else {
-                    HouseSelector(
-                        houses = current.houses,
-                        selected = selectedHouse,
-                        onSelect = { selectedHouse = it },
-                    )
-
-                    SignedAmountInput(
-                        sign = sign,
-                        amountText = amountText,
-                        enabled = houseSelected,
-                        onSignClick = { sign = if (sign == PointsSign.ADD) PointsSign.REMOVE else PointsSign.ADD },
-                        onAmountChange = { input -> amountText = input.filter { it.isDigit() }.take(3) },
-                    )
-
-                    actionError?.let { message ->
-                        Text(message, color = MaterialTheme.colorScheme.error)
+                is TeacherUiState.Success -> {
+                    // Never auto-pick a house — only clear a stale selection (e.g. the
+                    // selected house was deactivated elsewhere and dropped on reload).
+                    // Points must always be applied to a house the teacher explicitly chose.
+                    LaunchedEffect(current.houses) {
+                        if (selectedHouse != null && current.houses.none { it.id == selectedHouse?.id }) {
+                            selectedHouse = null
+                        }
                     }
 
-                    Button(
-                        enabled = selectedHouse != null && amount > 0 && !submitting,
-                        onClick = { showConfirm = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        if (submitting) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp))
-                        } else {
-                            Text(stringResource(Res.string.action_validate))
+                    val houseSelected = selectedHouse != null
+
+                    if (current.houses.isEmpty()) {
+                        Text(stringResource(Res.string.public_no_houses))
+                    } else {
+                        HouseSelector(
+                            houses = current.houses,
+                            selected = selectedHouse,
+                            onSelect = { selectedHouse = it },
+                        )
+
+                        SignedAmountInput(
+                            sign = sign,
+                            amountText = amountText,
+                            enabled = houseSelected,
+                            onSignClick = { sign = if (sign == PointsSign.ADD) PointsSign.REMOVE else PointsSign.ADD },
+                            onAmountChange = { input -> amountText = input.filter { it.isDigit() }.take(3) },
+                        )
+
+                        actionError?.let { message ->
+                            Text(message, color = MaterialTheme.colorScheme.error)
+                        }
+
+                        Button(
+                            enabled = selectedHouse != null && amount > 0 && !submitting,
+                            onClick = { showConfirm = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            if (submitting) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                            } else {
+                                Text(stringResource(Res.string.action_validate))
+                            }
                         }
                     }
                 }
             }
-        }
 
-        HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        Text(stringResource(Res.string.teacher_history_title), style = MaterialTheme.typography.titleMedium)
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Text(stringResource(Res.string.teacher_history_title), style = MaterialTheme.typography.titleMedium)
 
-        if (history.isEmpty()) {
-            Text(stringResource(Res.string.teacher_history_empty))
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (entry in history) {
-                    val signedText = if (entry.points > 0) "+${entry.points}" else "${entry.points}"
-                    Text(
-                        stringResource(Res.string.teacher_points_summary, entry.houseName, signedText),
-                        color = if (entry.points > 0) AddColor else MaterialTheme.colorScheme.error,
-                    )
+            if (history.isEmpty()) {
+                Text(stringResource(Res.string.teacher_history_empty))
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    for (entry in history) {
+                        val signedText = if (entry.points > 0) "+${entry.points}" else "${entry.points}"
+                        Text(
+                            stringResource(Res.string.teacher_points_summary, entry.houseName, signedText),
+                            color = if (entry.points > 0) AddColor else MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
         }
+        EndVerticalScrollbar(rememberScrollbarAdapter(scrollState))
     }
 
     val confirmingHouse = selectedHouse

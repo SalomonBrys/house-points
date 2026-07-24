@@ -98,6 +98,21 @@ final class PointEventRepository
     }
 
     /**
+     * The comments of the most-recently-created events, newest first — fed to
+     * the LLM so it can vary its style (see CommentGenerator).
+     *
+     * @return array<int, string>
+     */
+    public function latestComments(int $limit): array
+    {
+        $stmt = $this->pdo->query(
+            'SELECT comment FROM hp_point_events ORDER BY id DESC LIMIT ' . (int) $limit
+        );
+
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
      * Oldest-first listing of everything strictly after $sinceId, for polling clients.
      *
      * @return array<int, array<string, mixed>>

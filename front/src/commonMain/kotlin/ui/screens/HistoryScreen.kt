@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
@@ -186,7 +188,9 @@ fun HistoryScreen() {
             is HistoryUiState.Success -> if (current.events.isEmpty()) {
                 Text(stringResource(Res.string.history_empty), modifier = Modifier.align(Alignment.Center))
             } else {
+                val listState = rememberLazyListState()
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                 ) {
@@ -207,6 +211,7 @@ fun HistoryScreen() {
                         }
                     }
                 }
+                EndVerticalScrollbar(rememberScrollbarAdapter(listState))
             }
         }
     }

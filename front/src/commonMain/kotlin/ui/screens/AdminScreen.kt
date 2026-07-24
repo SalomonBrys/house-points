@@ -1,4 +1,5 @@
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -138,43 +140,47 @@ fun AdminScreen() {
     val actionError by viewModel.actionError.collectAsState()
     var pendingDelete by remember { mutableStateOf<PendingDelete?>(null) }
 
-    Column(
-        Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(stringResource(Res.string.welcome_message, username))
+    val scrollState = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.fillMaxSize().padding(16.dp).verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(stringResource(Res.string.welcome_message, username))
 
-        actionError?.let { message ->
-            Text(message, color = MaterialTheme.colorScheme.error)
-        }
-
-        when (val current = state) {
-            AdminUiState.Loading -> CircularProgressIndicator()
-
-            is AdminUiState.Error -> Column {
-                Text(
-                    stringResource(Res.string.public_load_error, current.message),
-                    color = MaterialTheme.colorScheme.error,
-                )
-                Button(onClick = { viewModel.refresh() }) { Text(stringResource(Res.string.action_retry)) }
+            actionError?.let { message ->
+                Text(message, color = MaterialTheme.colorScheme.error)
             }
 
-            is AdminUiState.Success -> {
-                HousesSection(
-                    houses = current.houses,
-                    onAdd = { name -> viewModel.addHouse(name) },
-                    onDeleteRequested = { house -> pendingDelete = PendingDelete.HouseDelete(house) },
-                )
-                Spacer(Modifier.height(16.dp))
-                TeachersSection(
-                    teachers = current.teachers,
-                    onAdd = { displayName, teacherUsername, password ->
-                        viewModel.addTeacher(displayName, teacherUsername, password)
-                    },
-                    onDeleteRequested = { teacher -> pendingDelete = PendingDelete.TeacherDelete(teacher) },
-                )
+            when (val current = state) {
+                AdminUiState.Loading -> CircularProgressIndicator()
+
+                is AdminUiState.Error -> Column {
+                    Text(
+                        stringResource(Res.string.public_load_error, current.message),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Button(onClick = { viewModel.refresh() }) { Text(stringResource(Res.string.action_retry)) }
+                }
+
+                is AdminUiState.Success -> {
+                    HousesSection(
+                        houses = current.houses,
+                        onAdd = { name -> viewModel.addHouse(name) },
+                        onDeleteRequested = { house -> pendingDelete = PendingDelete.HouseDelete(house) },
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    TeachersSection(
+                        teachers = current.teachers,
+                        onAdd = { displayName, teacherUsername, password ->
+                            viewModel.addTeacher(displayName, teacherUsername, password)
+                        },
+                        onDeleteRequested = { teacher -> pendingDelete = PendingDelete.TeacherDelete(teacher) },
+                    )
+                }
             }
         }
+        EndVerticalScrollbar(rememberScrollbarAdapter(scrollState))
     }
 
     when (val pending = pendingDelete) {
