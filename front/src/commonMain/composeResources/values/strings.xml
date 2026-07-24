@@ -12,6 +12,7 @@
     <string name="history_title">Historique</string>
     <string name="teacher_title">Enseignant</string>
     <string name="admin_title">Administrateur</string>
+    <string name="profile_title">Mon compte</string>
 
     <!-- Navigation drawer -->
     <string name="drawer_logout">Déconnexion</string>
@@ -107,6 +108,19 @@
     <string name="admin_confirm_delete_teacher_title">Supprimer l'enseignant ?</string>
     <string name="admin_confirm_delete_teacher_message">Voulez-vous vraiment supprimer le compte de « %1$s » ?</string>
 
+    <!-- Profile screen ("Mon compte") -->
+    <string name="profile_username_label">Nom d'utilisateur : %1$s</string>
+    <string name="label_current_password">Mot de passe actuel</string>
+    <string name="label_new_password">Nouveau mot de passe</string>
+    <string name="label_confirm_password">Confirmer le nouveau mot de passe</string>
+    <string name="action_change_password">Changer le mot de passe</string>
+    <string name="profile_password_changed">Mot de passe modifié.</string>
+    <string name="error_password_fields_required">Tous les champs sont requis.</string>
+    <string name="error_passwords_dont_match">Les nouveaux mots de passe ne correspondent pas.</string>
+    <string name="action_change_display_name">Changer le nom affiché</string>
+    <string name="profile_display_name_changed">Nom affiché modifié.</string>
+    <string name="error_display_name_required">Le nom affiché est requis.</string>
+
     <!-- Repository fallback error messages (used only when the backend's own
          error body can't be read; the backend's own {"error": "..."} text,
          when present, is shown verbatim and is not covered by this catalog). -->
@@ -120,4 +134,6 @@
     <string name="error_create_user">Échec de la création de l'utilisateur.</string>
     <string name="error_remove_user">Échec de la suppression de l'utilisateur.</string>
     <string name="error_load_users">Échec du chargement des enseignants.</string>
+    <string name="error_change_password_failed">Échec du changement de mot de passe.</string>
+    <string name="error_change_display_name_failed">Échec du changement de nom affiché.</string>
 </resources>

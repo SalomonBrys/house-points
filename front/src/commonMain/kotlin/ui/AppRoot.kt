@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.History
@@ -64,6 +65,7 @@ private val navSerializersModule = SerializersModule {
         subclass(History::class, History.serializer())
         subclass(TeacherHome::class, TeacherHome.serializer())
         subclass(AdminHome::class, AdminHome.serializer())
+        subclass(Profile::class, Profile.serializer())
     }
 }
 
@@ -73,9 +75,11 @@ private val navConfig = SavedStateConfiguration { serializersModule = navSeriali
  * Top-level app shell: one shared drawer + top bar wrapping the Navigation3
  * back stack, so individual screens carry no chrome of their own. Public
  * screens (leaderboard/[Leaderboard], history, login) are always reachable
- * from the drawer; a successful login routes to the role's home and a logout
- * routes back to [Leaderboard] — driven by observing [Session] rather than
- * by the screens navigating themselves.
+ * from the drawer; an explicit login routes to the role's home, a restored
+ * session (see [AuthRepository.restoreSession]) always routes to
+ * [Leaderboard] instead, and a logout routes back to [Leaderboard] too —
+ * driven by observing [Session] rather than by the screens navigating
+ * themselves.
  */
 @Composable
 fun AppRoot() {
@@ -90,10 +94,21 @@ fun AppRoot() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // One-shot: restores a returning user's session from persisted tokens, if
+    // any (see AuthRepository.restoreSession). The LaunchedEffect(authState)
+    // below reacts to the resulting state change and routes accordingly.
+    LaunchedEffect(Unit) {
+        auth.restoreSession()
+    }
+
     LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.LoggedIn -> {
-                val home = if (state.role == "admin") AdminHome else TeacherHome
+                val home = when {
+                    state.source == LoginSource.RESTORED -> Leaderboard
+                    state.role == "admin" -> AdminHome
+                    else -> TeacherHome
+                }
                 if (backStack.lastOrNull() != home) {
                     backStack.clear()
                     backStack.add(home)
@@ -101,7 +116,8 @@ fun AppRoot() {
             }
 
             AuthState.LoggedOut -> {
-                if (backStack.lastOrNull() is TeacherHome || backStack.lastOrNull() is AdminHome) {
+                val current = backStack.lastOrNull()
+                if (current is TeacherHome || current is AdminHome || current is Profile) {
                     backStack.clear()
                     backStack.add(Leaderboard)
                 }
@@ -184,6 +200,7 @@ fun AppRoot() {
                         }
                         entry<TeacherHome> { TeacherScreen() }
                         entry<AdminHome> { AdminScreen() }
+                        entry<Profile> { ProfileScreen() }
                     },
                 )
             }
@@ -270,6 +287,12 @@ private fun AppDrawerContent(
                         onClick = { onNavigate(AdminHome) },
                     )
                 }
+                NavigationDrawerItem(
+                    label = { Text(stringResource(Profile.titleRes)) },
+                    icon = { Icon(Icons.Filled.AccountCircle, contentDescription = null) },
+                    selected = currentScreen == Profile,
+                    onClick = { onNavigate(Profile) },
+                )
                 NavigationDrawerItem(
                     label = { Text(stringResource(Res.string.drawer_logout)) },
                     icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null) },

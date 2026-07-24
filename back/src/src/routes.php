@@ -49,6 +49,7 @@ return function (App $app, array $deps): void {
         $group->post('/houses/{houseId}/points', [$deps['pointEvents'], 'store']);
         $group->delete('/events/{id}', [$deps['pointEvents'], 'destroy']);
         $group->patch('/me/password', [$deps['me'], 'changePassword']);
+        $group->patch('/me/display-name', [$deps['me'], 'changeDisplayName']);
     })->add($deps['jwtAuth']);
 
     // --- Admin only ---
@@ -77,7 +78,7 @@ return function (App $app, array $deps): void {
             throw new HttpNotFoundException($request);
         }
 
-        $staticDir = realpath(__DIR__ . '/static');
+        $staticDir = realpath(__DIR__ . '/../static');
         $filePath = realpath($staticDir . '/' . $requestedPath);
 
         // realpath() resolves "..", so this also blocks path traversal

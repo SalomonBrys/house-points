@@ -14,6 +14,11 @@ data class JwtClaims(
     val userId: Int,
     val role: String,
     val username: String,
+    // Optional, unlike the fields above: added to the JWT after this field
+    // existed, so a token minted before that rollout simply lacks it rather
+    // than failing to decode — it self-heals within ~15min via the bearer
+    // plugin's automatic refresh (see AuthController::issueAccessToken).
+    val displayName: String?,
 )
 
 /**
@@ -37,7 +42,8 @@ fun decodeJwtClaims(token: String): JwtClaims? {
         val userId = obj["sub"]?.jsonPrimitive?.content?.toIntOrNull() ?: return null
         val role = obj["role"]?.jsonPrimitive?.content ?: return null
         val username = obj["username"]?.jsonPrimitive?.content ?: return null
-        JwtClaims(userId, role, username)
+        val displayName = obj["display_name"]?.jsonPrimitive?.content
+        JwtClaims(userId, role, username, displayName)
     } catch (e: Exception) {
         null
     }

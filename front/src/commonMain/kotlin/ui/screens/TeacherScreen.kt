@@ -142,7 +142,8 @@ fun TeacherScreen() {
     val di = localDI()
     val session = di.direct.instance<Session>()
     val authState by session.state.collectAsState()
-    val username = (authState as? AuthState.LoggedIn)?.username.orEmpty()
+    val loggedIn = authState as? AuthState.LoggedIn
+    val displayName = loggedIn?.displayName ?: loggedIn?.username.orEmpty()
 
     val viewModel = viewModel { TeacherViewModel(di.direct.instance(), di.direct.instance()) }
     val state by viewModel.state.collectAsState()
@@ -164,7 +165,7 @@ fun TeacherScreen() {
             Modifier.fillMaxSize().padding(16.dp).verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(Res.string.welcome_message, username))
+            Text(stringResource(Res.string.welcome_message, displayName))
 
             when (val current = state) {
                 TeacherUiState.Loading -> CircularProgressIndicator()

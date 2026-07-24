@@ -52,7 +52,7 @@ $responseFactory = new ResponseFactory();
 
 $deps = [
     'auth' => new AuthController($userRepository, $jwtService, $refreshTokenService),
-    'me' => new MeController($userRepository, $refreshTokenService),
+    'me' => new MeController($userRepository, $jwtService, $refreshTokenService),
     'houses' => new HousesController($houseRepository),
     'pointEvents' => new PointEventsController(
         $pointEventRepository,
@@ -82,6 +82,6 @@ $app->addErrorMiddleware(
 // error responses (e.g. 401/500) with CORS headers too.
 $app->add(new CorsMiddleware($corsAllowedOrigins, $responseFactory));
 
-(require __DIR__ . '/../routes.php')($app, $deps);
+(require __DIR__ . '/../src/routes.php')($app, $deps);
 
 $app->run();

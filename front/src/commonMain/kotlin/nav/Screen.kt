@@ -3,6 +3,7 @@ import house_points.front.generated.resources.Res
 import house_points.front.generated.resources.admin_title
 import house_points.front.generated.resources.history_title
 import house_points.front.generated.resources.login_title
+import house_points.front.generated.resources.profile_title
 import house_points.front.generated.resources.public_display_title
 import house_points.front.generated.resources.teacher_title
 import kotlinx.serialization.Serializable
@@ -46,4 +47,10 @@ data object TeacherHome : Screen {
 @Serializable
 data object AdminHome : Screen {
     override val titleRes = Res.string.admin_title
+}
+
+/** Authenticated-only: shows the current username and lets it change its password. */
+@Serializable
+data object Profile : Screen {
+    override val titleRes = Res.string.profile_title
 }

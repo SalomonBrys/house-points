@@ -81,6 +81,16 @@ data class ChangePasswordRequest(
 )
 
 @Serializable
+data class UpdateDisplayNameRequest(@SerialName("display_name") val displayName: String)
+
+/** Response of `PATCH /api/me/display-name`: a fresh access token only — no refresh token rotation. */
+@Serializable
+data class AccessTokenResponse(
+    @SerialName("access_token") val accessToken: String,
+    @SerialName("expires_in") val expiresIn: Int,
+)
+
+@Serializable
 data class CreatedId(val id: Int)
 
 @Serializable

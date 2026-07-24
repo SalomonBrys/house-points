@@ -8,7 +8,7 @@ import org.kodein.di.instance
  * Provided to the composable tree once, in [App], via `withDI`.
  */
 val appDI = DI {
-    bindSingleton<TokenStore> { InMemoryTokenStore() }
+    bindSingleton<TokenStore> { createTokenStore() }
     bindSingleton { Session() }
     bindSingleton { createHttpClient(instance(), instance()) }
     bindSingleton { AuthRepository(instance(), instance(), instance()) }

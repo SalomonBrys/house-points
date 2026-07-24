@@ -82,7 +82,7 @@ final class AuthController
     }
 
     /**
-     * @param array{id: int, username: string, role: string} $user
+     * @param array{id: int, username: string, role: string, display_name: string} $user
      */
     private function tokenPairResponse(Response $response, array $user): Response
     {
@@ -94,7 +94,7 @@ final class AuthController
     }
 
     /**
-     * @param array{id: int, username: string, role: string} $user
+     * @param array{id: int, username: string, role: string, display_name: string} $user
      */
     private function issueAccessToken(array $user): string
     {
@@ -102,6 +102,7 @@ final class AuthController
             'sub' => $user['id'],
             'role' => $user['role'],
             'username' => $user['username'],
+            'display_name' => $user['display_name'],
         ]);
     }
 }

@@ -110,4 +110,10 @@ final class UserRepository
         $stmt = $this->pdo->prepare('UPDATE hp_users SET password_hash = :password_hash WHERE id = :id');
         $stmt->execute(['password_hash' => $passwordHash, 'id' => $id]);
     }
+
+    public function updateDisplayName(int $id, string $displayName): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE hp_users SET display_name = :display_name WHERE id = :id');
+        $stmt->execute(['display_name' => $displayName, 'id' => $id]);
+    }
 }

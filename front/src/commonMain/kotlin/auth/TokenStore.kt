@@ -1,3 +1,7 @@
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
 /** Holds the current access/refresh token pair for the Ktor Auth plugin. */
 interface TokenStore {
     fun current(): TokenPair?
@@ -5,21 +9,12 @@ interface TokenStore {
     fun clear()
 }
 
-/**
- * In-memory only: a page reload logs the user out. Good enough for the
- * backbone; swapping in browser storage (e.g. `localStorage` on `webMain`,
- * behind this same interface) is a follow-up, not a structural change.
- */
-class InMemoryTokenStore : TokenStore {
-    private var tokens: TokenPair? = null
+/** Per-target persistent backing: `localStorage` on web (`webMain`), `Preferences` on desktop. */
+expect fun createTokenStore(): TokenStore
 
-    override fun current(): TokenPair? = tokens
+private val tokenStoreJson = Json { ignoreUnknownKeys = true }
 
-    override fun update(tokens: TokenPair) {
-        this.tokens = tokens
-    }
+fun TokenPair.toStorageString(): String = tokenStoreJson.encodeToString(this)
 
-    override fun clear() {
-        tokens = null
-    }
-}
+/** Corrupted/unrecognized stored data is treated as "no token" rather than crashing startup. */
+fun String.toTokenPairOrNull(): TokenPair? = runCatching { tokenStoreJson.decodeFromString<TokenPair>(this) }.getOrNull()
