@@ -44,21 +44,21 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import house_points.front.generated.resources.Res
-import house_points.front.generated.resources.action_retry
-import house_points.front.generated.resources.error_load_houses
-import house_points.front.generated.resources.house_points
-import house_points.front.generated.resources.public_display_columns_decrease
-import house_points.front.generated.resources.public_display_columns_increase
-import house_points.front.generated.resources.public_display_font_decrease
-import house_points.front.generated.resources.public_display_font_increase
-import house_points.front.generated.resources.public_display_refresh_description
-import house_points.front.generated.resources.public_display_settings_show
-import house_points.front.generated.resources.public_display_sort_by_name
-import house_points.front.generated.resources.public_display_sort_by_points
-import house_points.front.generated.resources.public_display_sort_description
-import house_points.front.generated.resources.public_load_error
-import house_points.front.generated.resources.public_no_houses
+import team_points.front.generated.resources.Res
+import team_points.front.generated.resources.action_retry
+import team_points.front.generated.resources.error_load_teams
+import team_points.front.generated.resources.team_points
+import team_points.front.generated.resources.public_display_columns_decrease
+import team_points.front.generated.resources.public_display_columns_increase
+import team_points.front.generated.resources.public_display_font_decrease
+import team_points.front.generated.resources.public_display_font_increase
+import team_points.front.generated.resources.public_display_refresh_description
+import team_points.front.generated.resources.public_display_settings_show
+import team_points.front.generated.resources.public_display_sort_by_name
+import team_points.front.generated.resources.public_display_sort_by_points
+import team_points.front.generated.resources.public_display_sort_description
+import team_points.front.generated.resources.public_load_error
+import team_points.front.generated.resources.public_no_teams
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,7 +76,7 @@ import org.kodein.di.direct
 import org.kodein.di.instance
 import kotlin.time.Duration.Companion.minutes
 
-enum class HouseSortOrder { NAME, POINTS }
+enum class TeamSortOrder { NAME, POINTS }
 
 /**
  * User-adjustable display settings for [LeaderboardScreen], shared with its
@@ -87,8 +87,8 @@ enum class HouseSortOrder { NAME, POINTS }
  * ([Session], [TokenStore]) — no persistence needed for a display preference.
  */
 class LeaderboardConfig {
-    private val _sortOrder = MutableStateFlow(HouseSortOrder.POINTS)
-    val sortOrder: StateFlow<HouseSortOrder> = _sortOrder.asStateFlow()
+    private val _sortOrder = MutableStateFlow(TeamSortOrder.POINTS)
+    val sortOrder: StateFlow<TeamSortOrder> = _sortOrder.asStateFlow()
 
     private val _columns = MutableStateFlow(MIN_COLUMNS)
     val columns: StateFlow<Int> = _columns.asStateFlow()
@@ -108,7 +108,7 @@ class LeaderboardConfig {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    fun setSortOrder(order: HouseSortOrder) {
+    fun setSortOrder(order: TeamSortOrder) {
         _sortOrder.value = order
     }
 
@@ -143,12 +143,12 @@ class LeaderboardConfig {
     }
 }
 
-class LeaderboardViewModel(private val housesRepository: HousesRepository) : ViewModel() {
+class LeaderboardViewModel(private val teamsRepository: TeamsRepository) : ViewModel() {
     // Null means "never successfully loaded yet" — once populated, a failed
     // refresh does NOT clear it, so the last good list stays on screen
     // undisturbed until a new fetch actually succeeds.
-    private val _houses = MutableStateFlow<List<House>?>(null)
-    val houses: StateFlow<List<House>?> = _houses.asStateFlow()
+    private val _teams = MutableStateFlow<List<Team>?>(null)
+    val teams: StateFlow<List<Team>?> = _teams.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
@@ -174,10 +174,10 @@ class LeaderboardViewModel(private val housesRepository: HousesRepository) : Vie
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _houses.value = housesRepository.listActive()
+                _teams.value = teamsRepository.listActive()
                 _errorMessage.value = null
             } catch (e: Exception) {
-                _errorMessage.value = e.message ?: getString(Res.string.error_load_houses)
+                _errorMessage.value = e.message ?: getString(Res.string.error_load_teams)
             } finally {
                 _isLoading.value = false
             }
@@ -190,7 +190,7 @@ class LeaderboardViewModel(private val housesRepository: HousesRepository) : Vie
 }
 
 /**
- * Public leaderboard — `GET /api/houses`, no auth. The app's default screen,
+ * Public leaderboard — `GET /api/teams`, no auth. The app's default screen,
  * labeled "Classement" (`SPECS.md §6`); chrome (top bar/drawer) lives in
  * [AppRoot], this is content-only — including [LeaderboardTopBarActions],
  * which [AppRoot] renders inside the shared top bar only while this screen is
@@ -198,10 +198,10 @@ class LeaderboardViewModel(private val housesRepository: HousesRepository) : Vie
  * remains a future follow-up.
  */
 @Composable
-fun LeaderboardScreen(onHouseClick: (House) -> Unit) {
+fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
     val di = localDI()
     val viewModel = viewModel { LeaderboardViewModel(di.direct.instance()) }
-    val houses by viewModel.houses.collectAsState()
+    val teams by viewModel.teams.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isLoadingVm by viewModel.isLoading.collectAsState()
     val config = di.direct.instance<LeaderboardConfig>()
@@ -217,12 +217,12 @@ fun LeaderboardScreen(onHouseClick: (House) -> Unit) {
     }
 
     Box(Modifier.fillMaxSize().padding(16.dp)) {
-        val currentHouses = houses
+        val currentTeams = teams
         val currentError = errorMessage
         when {
             // Never loaded successfully yet and it just failed — nothing else
             // to show, so this is the one case that still surfaces an error.
-            currentHouses == null && currentError != null -> Column(Modifier.align(Alignment.Center)) {
+            currentTeams == null && currentError != null -> Column(Modifier.align(Alignment.Center)) {
                 Text(
                     stringResource(Res.string.public_load_error, currentError),
                     color = MaterialTheme.colorScheme.error,
@@ -232,15 +232,15 @@ fun LeaderboardScreen(onHouseClick: (House) -> Unit) {
 
             // First load still in flight: no centered spinner (the top bar
             // already shows one) — just nothing to render yet.
-            currentHouses == null -> Unit
+            currentTeams == null -> Unit
 
-            currentHouses.isEmpty() -> Text(stringResource(Res.string.public_no_houses), modifier = Modifier.align(Alignment.Center))
+            currentTeams.isEmpty() -> Text(stringResource(Res.string.public_no_teams), modifier = Modifier.align(Alignment.Center))
 
             else -> {
-                val sortedHouses = remember(currentHouses, sortOrder) {
+                val sortedTeams = remember(currentTeams, sortOrder) {
                     when (sortOrder) {
-                        HouseSortOrder.NAME -> currentHouses.sortedBy { it.name }
-                        HouseSortOrder.POINTS -> currentHouses.sortedByDescending { it.totalPoints }
+                        TeamSortOrder.NAME -> currentTeams.sortedBy { it.name }
+                        TeamSortOrder.POINTS -> currentTeams.sortedByDescending { it.totalPoints }
                     }
                 }
                 val gridState = rememberLazyGridState()
@@ -251,11 +251,11 @@ fun LeaderboardScreen(onHouseClick: (House) -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(sortedHouses, key = { it.id }) { house ->
-                        HouseCard(
-                            house = house,
+                    items(sortedTeams, key = { it.id }) { team ->
+                        TeamCard(
+                            team = team,
                             fontScale = fontScale,
-                            onClick = { onHouseClick(house) },
+                            onClick = { onTeamClick(team) },
                             modifier = Modifier.animateItem(
                                 placementSpec = tween(1500)
                             )
@@ -269,7 +269,7 @@ fun LeaderboardScreen(onHouseClick: (House) -> Unit) {
 }
 
 @Composable
-private fun HouseCard(house: House, fontScale: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun TeamCard(team: Team, fontScale: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -277,14 +277,14 @@ private fun HouseCard(house: House, fontScale: Float, onClick: () -> Unit, modif
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = house.name,
+                text = team.name,
                 style = MaterialTheme.typography.titleLarge,
                 fontSize = MaterialTheme.typography.titleLarge.fontSize * fontScale,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = stringResource(Res.string.house_points, house.totalPoints),
+                text = stringResource(Res.string.team_points, team.totalPoints),
                 style = MaterialTheme.typography.headlineMedium,
                 fontSize = MaterialTheme.typography.headlineMedium.fontSize * fontScale,
                 maxLines = 1,
@@ -316,25 +316,25 @@ fun LeaderboardTopBarActions() {
         DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.public_display_sort_by_name)) },
-                leadingIcon = if (sortOrder == HouseSortOrder.NAME) {
+                leadingIcon = if (sortOrder == TeamSortOrder.NAME) {
                     { Icon(Icons.Filled.Check, contentDescription = null) }
                 } else {
                     null
                 },
                 onClick = {
-                    config.setSortOrder(HouseSortOrder.NAME)
+                    config.setSortOrder(TeamSortOrder.NAME)
                     sortMenuExpanded = false
                 },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.public_display_sort_by_points)) },
-                leadingIcon = if (sortOrder == HouseSortOrder.POINTS) {
+                leadingIcon = if (sortOrder == TeamSortOrder.POINTS) {
                     { Icon(Icons.Filled.Check, contentDescription = null) }
                 } else {
                     null
                 },
                 onClick = {
-                    config.setSortOrder(HouseSortOrder.POINTS)
+                    config.setSortOrder(TeamSortOrder.POINTS)
                     sortMenuExpanded = false
                 },
             )

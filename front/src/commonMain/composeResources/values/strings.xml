@@ -6,7 +6,7 @@
          literally — a backslash before one is kept as a literal character. -->
 
     <!-- Screen / window titles -->
-    <string name="app_name">Points des Maisons</string>
+    <string name="app_name">Points des Équipes</string>
     <string name="public_display_title">Classement</string>
     <string name="login_title">Connexion</string>
     <string name="history_title">Historique</string>
@@ -29,16 +29,16 @@
 
     <!-- Public / leaderboard screen -->
     <string name="action_retry">Réessayer</string>
-    <string name="public_no_houses">Aucune maison pour le moment.</string>
-    <string name="public_load_error">Impossible de charger les maisons : %1$s</string>
-    <string name="house_points">%1$d pts</string>
+    <string name="public_no_teams">Aucune équipe pour le moment.</string>
+    <string name="public_load_error">Impossible de charger les équipes : %1$s</string>
+    <string name="team_points">%1$d pts</string>
     <string name="public_display_sort_description">Trier</string>
     <string name="public_display_refresh_description">Actualiser</string>
     <string name="public_display_settings_show">Afficher les réglages d'affichage</string>
     <string name="public_display_sort_by_name">Nom</string>
     <string name="public_display_sort_by_points">Points</string>
-    <string name="public_display_columns_decrease">Réduire le nombre de maisons par ligne</string>
-    <string name="public_display_columns_increase">Augmenter le nombre de maisons par ligne</string>
+    <string name="public_display_columns_decrease">Réduire le nombre d'équipes par ligne</string>
+    <string name="public_display_columns_increase">Augmenter le nombre d'équipes par ligne</string>
     <string name="public_display_font_decrease">Réduire la taille du texte</string>
     <string name="public_display_font_increase">Augmenter la taille du texte</string>
 
@@ -49,7 +49,7 @@
     <string name="history_title_filtered">Historique — %1$s</string>
     <string name="history_filter_description">Filtrer</string>
     <string name="history_filter_all">Tout afficher</string>
-    <string name="history_filter_houses_section">Maisons</string>
+    <string name="history_filter_teams_section">Équipes</string>
     <string name="history_filter_teachers_section">Enseignants</string>
     <string name="history_empty">Aucun événement pour le moment.</string>
     <string name="history_load_more">Charger plus</string>
@@ -84,7 +84,7 @@
     <string name="history_event_datetime">%1$s %2$d %3$s à %4$dh%5$s</string>
 
     <!-- Teacher screen -->
-    <string name="teacher_house_label">Maison</string>
+    <string name="teacher_team_label">Équipe</string>
     <string name="teacher_sign_add_description">Ajouter des points</string>
     <string name="teacher_sign_remove_description">Retirer des points</string>
     <string name="action_validate">Valider</string>
@@ -95,16 +95,16 @@
     <string name="teacher_history_empty">Aucune transaction pour le moment.</string>
 
     <!-- Admin screen -->
-    <string name="admin_houses_section">Maisons</string>
+    <string name="admin_teams_section">Équipes</string>
     <string name="admin_teachers_section">Enseignants</string>
-    <string name="admin_house_name">Nom de la maison</string>
+    <string name="admin_team_name">Nom de l'équipe</string>
     <string name="label_display_name">Nom affiché</string>
     <string name="action_add">Ajouter</string>
     <string name="action_delete">Supprimer</string>
     <string name="action_cancel">Annuler</string>
     <string name="admin_no_teachers">Aucun enseignant pour le moment.</string>
-    <string name="admin_confirm_delete_house_title">Supprimer la maison ?</string>
-    <string name="admin_confirm_delete_house_message">Voulez-vous vraiment supprimer la maison « %1$s » ?</string>
+    <string name="admin_confirm_delete_team_title">Supprimer l'équipe ?</string>
+    <string name="admin_confirm_delete_team_message">Voulez-vous vraiment supprimer l'équipe « %1$s » ?</string>
     <string name="admin_confirm_delete_teacher_title">Supprimer l'enseignant ?</string>
     <string name="admin_confirm_delete_teacher_message">Voulez-vous vraiment supprimer le compte de « %1$s » ?</string>
 
@@ -124,9 +124,9 @@
     <!-- Repository fallback error messages (used only when the backend's own
          error body can't be read; the backend's own {"error": "..."} text,
          when present, is shown verbatim and is not covered by this catalog). -->
-    <string name="error_load_houses">Échec du chargement des maisons.</string>
-    <string name="error_create_house">Échec de la création de la maison.</string>
-    <string name="error_remove_house">Échec de la suppression de la maison.</string>
+    <string name="error_load_teams">Échec du chargement des équipes.</string>
+    <string name="error_create_team">Échec de la création de l'équipe.</string>
+    <string name="error_remove_team">Échec de la suppression de l'équipe.</string>
     <string name="error_load_events">Échec du chargement des événements.</string>
     <string name="error_poll_events">Échec de la récupération des événements.</string>
     <string name="error_record_points">Échec de l'enregistrement des points.</string>

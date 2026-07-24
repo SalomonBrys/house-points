@@ -6,7 +6,7 @@ namespace App\Repositories;
 
 use PDO;
 
-final class HouseRepository
+final class TeamRepository
 {
     public function __construct(private readonly PDO $pdo)
     {
@@ -18,11 +18,11 @@ final class HouseRepository
     public function allActiveWithTotals(): array
     {
         $stmt = $this->pdo->query(
-            'SELECT h.id, h.name, COALESCE(SUM(p.points), 0) AS total_points
-             FROM hp_houses h
-             LEFT JOIN hp_point_events p ON p.house_id = h.id
-             WHERE h.active = 1
-             GROUP BY h.id, h.name
+            'SELECT t.id, t.name, COALESCE(SUM(p.points), 0) AS total_points
+             FROM hp_teams t
+             LEFT JOIN hp_point_events p ON p.team_id = t.id
+             WHERE t.active = 1
+             GROUP BY t.id, t.name
              ORDER BY total_points DESC'
         );
 
@@ -40,17 +40,17 @@ final class HouseRepository
      */
     public function findActive(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, name FROM hp_houses WHERE id = :id AND active = 1 LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, name FROM hp_teams WHERE id = :id AND active = 1 LIMIT 1');
         $stmt->execute(['id' => $id]);
 
-        $house = $stmt->fetch();
+        $team = $stmt->fetch();
 
-        return $house === false ? null : $house;
+        return $team === false ? null : $team;
     }
 
     public function existsById(int $id): bool
     {
-        $stmt = $this->pdo->prepare('SELECT 1 FROM hp_houses WHERE id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT 1 FROM hp_teams WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $id]);
 
         return $stmt->fetch() !== false;
@@ -58,7 +58,7 @@ final class HouseRepository
 
     public function create(string $name): int
     {
-        $stmt = $this->pdo->prepare('INSERT INTO hp_houses (name, active) VALUES (:name, 1)');
+        $stmt = $this->pdo->prepare('INSERT INTO hp_teams (name, active) VALUES (:name, 1)');
         $stmt->execute(['name' => $name]);
 
         return (int) $this->pdo->lastInsertId();
@@ -66,7 +66,7 @@ final class HouseRepository
 
     public function deactivate(int $id): void
     {
-        $stmt = $this->pdo->prepare('UPDATE hp_houses SET active = 0 WHERE id = :id');
+        $stmt = $this->pdo->prepare('UPDATE hp_teams SET active = 0 WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
 }

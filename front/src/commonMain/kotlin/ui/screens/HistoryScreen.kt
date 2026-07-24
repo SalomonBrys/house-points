@@ -38,19 +38,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import house_points.front.generated.resources.Res
-import house_points.front.generated.resources.action_retry
-import house_points.front.generated.resources.date_day_names
-import house_points.front.generated.resources.date_month_names
-import house_points.front.generated.resources.error_load_events
-import house_points.front.generated.resources.history_empty
-import house_points.front.generated.resources.history_event_datetime
-import house_points.front.generated.resources.history_filter_all
-import house_points.front.generated.resources.history_filter_description
-import house_points.front.generated.resources.history_filter_houses_section
-import house_points.front.generated.resources.history_filter_teachers_section
-import house_points.front.generated.resources.history_load_more
-import house_points.front.generated.resources.public_load_error
+import team_points.front.generated.resources.Res
+import team_points.front.generated.resources.action_retry
+import team_points.front.generated.resources.date_day_names
+import team_points.front.generated.resources.date_month_names
+import team_points.front.generated.resources.error_load_events
+import team_points.front.generated.resources.history_empty
+import team_points.front.generated.resources.history_event_datetime
+import team_points.front.generated.resources.history_filter_all
+import team_points.front.generated.resources.history_filter_description
+import team_points.front.generated.resources.history_filter_teams_section
+import team_points.front.generated.resources.history_filter_teachers_section
+import team_points.front.generated.resources.history_load_more
+import team_points.front.generated.resources.public_load_error
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,12 +68,12 @@ import org.kodein.di.instance
 /** Which single dimension, if any, the history list is currently narrowed to. */
 sealed interface HistoryFilterSelection {
     data object All : HistoryFilterSelection
-    data class ByHouse(val house: House) : HistoryFilterSelection
+    data class ByTeam(val team: Team) : HistoryFilterSelection
     data class ByTeacher(val teacher: Teacher) : HistoryFilterSelection
 }
 
 /**
- * Current house/teacher filter for [HistoryScreen], shared with its top-bar
+ * Current team/teacher filter for [HistoryScreen], shared with its top-bar
  * control ([HistoryTopBarActions]) via a DI singleton — the two composables
  * are siblings under [AppRoot] (which also reads this to append the filtered
  * name to the shared top bar's title), not parent/child, so nav-entry scoped
@@ -163,7 +163,7 @@ class HistoryViewModel(
 
     private suspend fun fetchPage(beforeId: Int?) = when (val selection = currentSelection) {
         HistoryFilterSelection.All -> events.listPaginated(beforeId = beforeId)
-        is HistoryFilterSelection.ByHouse -> events.listPaginated(beforeId = beforeId, houseId = selection.house.id)
+        is HistoryFilterSelection.ByTeam -> events.listPaginated(beforeId = beforeId, teamId = selection.team.id)
         is HistoryFilterSelection.ByTeacher -> events.listPaginated(beforeId = beforeId, teacherId = selection.teacher.id)
     }
 }
@@ -171,7 +171,7 @@ class HistoryViewModel(
 /**
  * Public event history — `GET /api/events`, no auth (`SPECS.md §6`). Newest
  * first, keyset-paginated via a "load more" button, optionally narrowed to a
- * single house or teacher via [HistoryFilter]/[HistoryTopBarActions]. Chrome
+ * single team or teacher via [HistoryFilter]/[HistoryTopBarActions]. Chrome
  * (top bar/drawer) lives in [AppRoot], this is content-only.
  */
 @Composable
@@ -280,7 +280,7 @@ private fun formatEventTimestamp(raw: String): String {
 
 /**
  * Filter control for [HistoryScreen], rendered by [AppRoot] inside the shared
- * top bar (see the class doc on [HistoryFilter]). Fetches the active houses
+ * top bar (see the class doc on [HistoryFilter]). Fetches the active teams
  * and teachers itself, purely to populate the dropdown's options.
  */
 @Composable
@@ -288,15 +288,15 @@ fun HistoryTopBarActions() {
     val di = localDI()
     val filter = di.direct.instance<HistoryFilter>()
     val selection by filter.selection.collectAsState()
-    val housesRepository = di.direct.instance<HousesRepository>()
+    val teamsRepository = di.direct.instance<TeamsRepository>()
     val usersRepository = di.direct.instance<UsersRepository>()
 
-    var houses by remember { mutableStateOf<List<House>>(emptyList()) }
+    var teams by remember { mutableStateOf<List<Team>>(emptyList()) }
     var teachers by remember { mutableStateOf<List<Teacher>>(emptyList()) }
     LaunchedEffect(Unit) {
         // Best-effort: if either fetch fails, its section is simply left
         // empty — "Tout afficher" remains available regardless.
-        runCatching { houses = housesRepository.listActive() }
+        runCatching { teams = teamsRepository.listActive() }
         runCatching { teachers = usersRepository.listTeachers() }
     }
 
@@ -318,24 +318,24 @@ fun HistoryTopBarActions() {
                     expanded = false
                 },
             )
-            if (houses.isNotEmpty()) {
+            if (teams.isNotEmpty()) {
                 HorizontalDivider()
                 Text(
-                    stringResource(Res.string.history_filter_houses_section),
+                    stringResource(Res.string.history_filter_teams_section),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
-                houses.forEach { house ->
+                teams.forEach { team ->
                     DropdownMenuItem(
-                        text = { Text(house.name) },
-                        leadingIcon = if (selection == HistoryFilterSelection.ByHouse(house)) {
+                        text = { Text(team.name) },
+                        leadingIcon = if (selection == HistoryFilterSelection.ByTeam(team)) {
                             { Icon(Icons.Filled.Check, contentDescription = null) }
                         } else {
                             null
                         },
                         onClick = {
-                            filter.set(HistoryFilterSelection.ByHouse(house))
+                            filter.set(HistoryFilterSelection.ByTeam(team))
                             expanded = false
                         },
                     )

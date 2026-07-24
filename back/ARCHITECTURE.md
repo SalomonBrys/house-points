@@ -18,7 +18,7 @@ Three architectures were considered:
 per-route/group middleware (critical for JWT auth), and testable
 controllers/repositories, without the overhead of a full framework's
 conventions, ORM, or startup cost. It matches the project's size: a handful
-of resources (houses, users, point events, refresh tokens).
+of resources (teams, users, point events, refresh tokens).
 
 ## 2. Router: Slim Framework
 
@@ -33,7 +33,7 @@ script, e.g.:
 
 ```php
 $app->group('/api', function (RouteCollectorProxy $group) use ($deps) {
-    $group->get('/houses', [$deps['houses'], 'index']);
+    $group->get('/teams', [$deps['teams'], 'index']);
     // ...
 })->add($deps['jwtAuth']);
 ```
@@ -87,7 +87,7 @@ Considered: raw PDO, a query builder (e.g. `illuminate/database` standalone),
 and a full ORM (Doctrine).
 
 **Chosen: raw PDO**, wrapped in one repository class per entity (e.g. a
-`UserRepository`, a `HouseRepository`, a `PointEventRepository`), each taking
+`UserRepository`, a `TeamRepository`, a `PointEventRepository`), each taking
 a `PDO` instance via constructor injection and exposing intention-revealing
 methods (`findByUsername`, `allWithTotals`, `addEntry`, ...).
 
@@ -143,11 +143,11 @@ same for the PHP process itself.
 
 ## 9. Database table naming: `hp_` prefix
 
-All tables will be prefixed (`hp_users`, `hp_houses`, `hp_point_events`,
-`hp_refresh_tokens`) rather than left bare (`users`, `houses`, ...).
+All tables will be prefixed (`hp_users`, `hp_teams`, `hp_point_events`,
+`hp_refresh_tokens`) rather than left bare (`users`, `teams`, ...).
 
 **Rationale:** namespacing convention to avoid collisions with generic table
-names (`users`, `houses`) if this schema ever shares a MySQL instance/schema
+names (`users`, `teams`) if this schema ever shares a MySQL instance/schema
 with other applications.
 
 ## 10. Auth token strategy

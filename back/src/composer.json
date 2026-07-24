@@ -1,6 +1,6 @@
 {
-    "name": "house-points/api",
-    "description": "House Points API",
+    "name": "team-points/api",
+    "description": "Team Points API",
     "type": "project",
     "require": {
         "php": "^8.2",

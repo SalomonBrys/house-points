@@ -42,7 +42,7 @@ final class CommentGenerator
     ) {
     }
 
-    public function generate(string $teacherName, string $houseName, int $points): string
+    public function generate(string $teacherName, string $teamName, int $points): string
     {
         $userPrompt = sprintf(
             "L'enseignant %s %s %d point%s à l'équipe %s. Rédige le commentaire.",
@@ -50,7 +50,7 @@ final class CommentGenerator
             $points > 0 ? 'a donné' : 'a retiré',
             abs($points),
             abs($points) > 1 ? 's' : '',
-            $houseName,
+            $teamName,
         );
 
         try {
@@ -71,7 +71,7 @@ final class CommentGenerator
             error_log('CommentGenerator: Anthropic API call failed: ' . $e->getMessage());
         }
 
-        return $this->fallbackComment($teacherName, $houseName, $points);
+        return $this->fallbackComment($teacherName, $teamName, $points);
     }
 
     /**
@@ -117,7 +117,7 @@ final class CommentGenerator
             . "\n\nRéponds uniquement par une seule phrase, en français, de 250 caractères maximum. N'utilise pas de guillemets, ne réponds rien d'autre que cette phrase.";
     }
 
-    private function fallbackComment(string $teacherName, string $houseName, int $points): string
+    private function fallbackComment(string $teacherName, string $teamName, int $points): string
     {
         return sprintf(
             '%s %s %d point%s à %s.',
@@ -125,7 +125,7 @@ final class CommentGenerator
             $points > 0 ? 'a ajouté' : 'a retiré',
             abs($points),
             abs($points) > 1 ? 's' : '',
-            $houseName,
+            $teamName,
         );
     }
 }

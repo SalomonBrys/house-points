@@ -1,5 +1,5 @@
 /**
- * Base URL of the House Points API. Every repository builds full request
+ * Base URL of the Team Points API. Every repository builds full request
  * URLs off it. Resolved once, lazily, from `BuildConfig.API_URL` (generated
  * at build time from the `ApiUrl` Gradle property — see `front/build.gradle.kts`
  * and `front/ARCHITECTURE.md`): if that's set, it's used directly; if it's

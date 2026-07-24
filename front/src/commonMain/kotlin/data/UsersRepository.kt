@@ -7,10 +7,10 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
-import house_points.front.generated.resources.Res
-import house_points.front.generated.resources.error_create_user
-import house_points.front.generated.resources.error_load_users
-import house_points.front.generated.resources.error_remove_user
+import team_points.front.generated.resources.Res
+import team_points.front.generated.resources.error_create_user
+import team_points.front.generated.resources.error_load_users
+import team_points.front.generated.resources.error_remove_user
 import org.jetbrains.compose.resources.getString
 
 /**

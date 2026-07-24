@@ -41,22 +41,22 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import house_points.front.generated.resources.Res
-import house_points.front.generated.resources.action_cancel
-import house_points.front.generated.resources.action_confirm
-import house_points.front.generated.resources.action_retry
-import house_points.front.generated.resources.action_validate
-import house_points.front.generated.resources.error_load_houses
-import house_points.front.generated.resources.public_load_error
-import house_points.front.generated.resources.public_no_houses
-import house_points.front.generated.resources.teacher_confirm_title
-import house_points.front.generated.resources.teacher_history_empty
-import house_points.front.generated.resources.teacher_history_title
-import house_points.front.generated.resources.teacher_house_label
-import house_points.front.generated.resources.teacher_points_summary
-import house_points.front.generated.resources.teacher_sign_add_description
-import house_points.front.generated.resources.teacher_sign_remove_description
-import house_points.front.generated.resources.welcome_message
+import team_points.front.generated.resources.Res
+import team_points.front.generated.resources.action_cancel
+import team_points.front.generated.resources.action_confirm
+import team_points.front.generated.resources.action_retry
+import team_points.front.generated.resources.action_validate
+import team_points.front.generated.resources.error_load_teams
+import team_points.front.generated.resources.public_load_error
+import team_points.front.generated.resources.public_no_teams
+import team_points.front.generated.resources.teacher_confirm_title
+import team_points.front.generated.resources.teacher_history_empty
+import team_points.front.generated.resources.teacher_history_title
+import team_points.front.generated.resources.teacher_team_label
+import team_points.front.generated.resources.teacher_points_summary
+import team_points.front.generated.resources.teacher_sign_add_description
+import team_points.front.generated.resources.teacher_sign_remove_description
+import team_points.front.generated.resources.welcome_message
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -75,16 +75,16 @@ private val AmountFontSize = 96.sp
 
 private enum class PointsSign { ADD, REMOVE }
 
-data class HistoryEntry(val houseName: String, val points: Int)
+data class HistoryEntry(val teamName: String, val points: Int)
 
 sealed interface TeacherUiState {
     data object Loading : TeacherUiState
-    data class Success(val houses: List<House>) : TeacherUiState
+    data class Success(val teams: List<Team>) : TeacherUiState
     data class Error(val message: String) : TeacherUiState
 }
 
 class TeacherViewModel(
-    private val houses: HousesRepository,
+    private val teams: TeamsRepository,
     private val events: EventsRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow<TeacherUiState>(TeacherUiState.Loading)
@@ -107,20 +107,20 @@ class TeacherViewModel(
         viewModelScope.launch {
             _state.value = TeacherUiState.Loading
             _state.value = try {
-                TeacherUiState.Success(houses.listActive())
+                TeacherUiState.Success(teams.listActive())
             } catch (e: Exception) {
-                TeacherUiState.Error(e.message ?: getString(Res.string.error_load_houses))
+                TeacherUiState.Error(e.message ?: getString(Res.string.error_load_teams))
             }
         }
     }
 
-    fun submitPoints(house: House, points: Int) {
+    fun submitPoints(team: Team, points: Int) {
         viewModelScope.launch {
             _actionError.value = null
             _submitting.value = true
             try {
-                events.addPoints(house.id, points)
-                _history.value = listOf(HistoryEntry(house.name, points)) + _history.value
+                events.addPoints(team.id, points)
+                _history.value = listOf(HistoryEntry(team.name, points)) + _history.value
             } catch (e: Exception) {
                 _actionError.value = e.message
             } finally {
@@ -131,7 +131,7 @@ class TeacherViewModel(
 }
 
 /**
- * Teacher home: award or void house points (`SPECS.md §6`). The transaction
+ * Teacher home: award or void team points (`SPECS.md §6`). The transaction
  * list here is an in-memory, per-[ViewModel] session log only — it is not the
  * persisted history (see [HistoryScreen]) and is lost when the teacher
  * navigates away, by design. Chrome (top bar/drawer) lives in [AppRoot], this
@@ -151,7 +151,7 @@ fun TeacherScreen() {
     val actionError by viewModel.actionError.collectAsState()
     val submitting by viewModel.submitting.collectAsState()
 
-    var selectedHouse by remember { mutableStateOf<House?>(null) }
+    var selectedTeam by remember { mutableStateOf<Team?>(null) }
     var sign by remember { mutableStateOf(PointsSign.ADD) }
     var amountText by remember { mutableStateOf("") }
     var showConfirm by remember { mutableStateOf(false) }
@@ -179,30 +179,30 @@ fun TeacherScreen() {
                 }
 
                 is TeacherUiState.Success -> {
-                    // Never auto-pick a house — only clear a stale selection (e.g. the
-                    // selected house was deactivated elsewhere and dropped on reload).
-                    // Points must always be applied to a house the teacher explicitly chose.
-                    LaunchedEffect(current.houses) {
-                        if (selectedHouse != null && current.houses.none { it.id == selectedHouse?.id }) {
-                            selectedHouse = null
+                    // Never auto-pick a team — only clear a stale selection (e.g. the
+                    // selected team was deactivated elsewhere and dropped on reload).
+                    // Points must always be applied to a team the teacher explicitly chose.
+                    LaunchedEffect(current.teams) {
+                        if (selectedTeam != null && current.teams.none { it.id == selectedTeam?.id }) {
+                            selectedTeam = null
                         }
                     }
 
-                    val houseSelected = selectedHouse != null
+                    val teamSelected = selectedTeam != null
 
-                    if (current.houses.isEmpty()) {
-                        Text(stringResource(Res.string.public_no_houses))
+                    if (current.teams.isEmpty()) {
+                        Text(stringResource(Res.string.public_no_teams))
                     } else {
-                        HouseSelector(
-                            houses = current.houses,
-                            selected = selectedHouse,
-                            onSelect = { selectedHouse = it },
+                        TeamSelector(
+                            teams = current.teams,
+                            selected = selectedTeam,
+                            onSelect = { selectedTeam = it },
                         )
 
                         SignedAmountInput(
                             sign = sign,
                             amountText = amountText,
-                            enabled = houseSelected,
+                            enabled = teamSelected,
                             onSignClick = { sign = if (sign == PointsSign.ADD) PointsSign.REMOVE else PointsSign.ADD },
                             onAmountChange = { input -> amountText = input.filter { it.isDigit() }.take(3) },
                         )
@@ -212,7 +212,7 @@ fun TeacherScreen() {
                         }
 
                         Button(
-                            enabled = selectedHouse != null && amount > 0 && !submitting,
+                            enabled = selectedTeam != null && amount > 0 && !submitting,
                             onClick = { showConfirm = true },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -236,7 +236,7 @@ fun TeacherScreen() {
                     for (entry in history) {
                         val signedText = if (entry.points > 0) "+${entry.points}" else "${entry.points}"
                         Text(
-                            stringResource(Res.string.teacher_points_summary, entry.houseName, signedText),
+                            stringResource(Res.string.teacher_points_summary, entry.teamName, signedText),
                             color = if (entry.points > 0) AddColor else MaterialTheme.colorScheme.error,
                         )
                     }
@@ -246,16 +246,16 @@ fun TeacherScreen() {
         EndVerticalScrollbar(rememberScrollbarAdapter(scrollState))
     }
 
-    val confirmingHouse = selectedHouse
-    if (showConfirm && confirmingHouse != null) {
+    val confirmingTeam = selectedTeam
+    if (showConfirm && confirmingTeam != null) {
         val signedText = if (signedAmount > 0) "+${signedAmount}" else "${signedAmount}"
         AlertDialog(
             onDismissRequest = { showConfirm = false },
             title = { Text(stringResource(Res.string.teacher_confirm_title)) },
-            text = { Text(stringResource(Res.string.teacher_points_summary, confirmingHouse.name, signedText)) },
+            text = { Text(stringResource(Res.string.teacher_points_summary, confirmingTeam.name, signedText)) },
             confirmButton = {
                 Button(onClick = {
-                    viewModel.submitPoints(confirmingHouse, signedAmount)
+                    viewModel.submitPoints(confirmingTeam, signedAmount)
                     amountText = ""
                     showConfirm = false
                 }) { Text(stringResource(Res.string.action_confirm)) }
@@ -268,18 +268,18 @@ fun TeacherScreen() {
 }
 
 @Composable
-private fun HouseSelector(houses: List<House>, selected: House?, onSelect: (House) -> Unit) {
+private fun TeamSelector(teams: List<Team>, selected: Team?, onSelect: (Team) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth()) {
         OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(selected?.name ?: stringResource(Res.string.teacher_house_label))
+            Text(selected?.name ?: stringResource(Res.string.teacher_team_label))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            houses.forEach { house ->
+            teams.forEach { team ->
                 DropdownMenuItem(
-                    text = { Text(house.name) },
+                    text = { Text(team.name) },
                     onClick = {
-                        onSelect(house)
+                        onSelect(team)
                         expanded = false
                     },
                 )

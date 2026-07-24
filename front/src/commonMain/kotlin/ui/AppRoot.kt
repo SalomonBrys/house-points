@@ -34,21 +34,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
-import house_points.front.generated.resources.Res
-import house_points.front.generated.resources.app_name
-import house_points.front.generated.resources.drawer_logout
-import house_points.front.generated.resources.history_title
-import house_points.front.generated.resources.history_title_filtered
-import house_points.front.generated.resources.login_title
-import house_points.front.generated.resources.nav_back
-import house_points.front.generated.resources.nav_open_menu
-import house_points.front.generated.resources.public_display_title
+import team_points.front.generated.resources.Res
+import team_points.front.generated.resources.app_name
+import team_points.front.generated.resources.drawer_logout
+import team_points.front.generated.resources.history_title
+import team_points.front.generated.resources.history_title_filtered
+import team_points.front.generated.resources.login_title
+import team_points.front.generated.resources.nav_back
+import team_points.front.generated.resources.nav_open_menu
+import team_points.front.generated.resources.public_display_title
 import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -72,6 +73,15 @@ private val navSerializersModule = SerializersModule {
 private val navConfig = SavedStateConfiguration { serializersModule = navSerializersModule }
 
 /**
+ * Keeps [AppRoot]'s nav back stack in sync with the browser's address bar and
+ * history (back/forward) on web targets, via terrakok/navigation3-browser
+ * (`webMain`-only dependency) in "chronological" mode — URL navigation drives
+ * the app, like a normal website. No-op on desktop (no browser to sync with).
+ */
+@Composable
+expect fun BrowserNavigationSync(backStack: NavBackStack<NavKey>)
+
+/**
  * Top-level app shell: one shared drawer + top bar wrapping the Navigation3
  * back stack, so individual screens carry no chrome of their own. Public
  * screens (leaderboard/[Leaderboard], history, login) are always reachable
@@ -91,6 +101,7 @@ fun AppRoot() {
     val historyFilterSelection by historyFilter.selection.collectAsState()
 
     val backStack = rememberNavBackStack(navConfig, Leaderboard)
+    BrowserNavigationSync(backStack)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -152,7 +163,7 @@ fun AppRoot() {
                 val title = if (currentScreen is History) {
                     when (val selection = historyFilterSelection) {
                         HistoryFilterSelection.All -> stringResource(Res.string.history_title)
-                        is HistoryFilterSelection.ByHouse -> stringResource(Res.string.history_title_filtered, selection.house.name)
+                        is HistoryFilterSelection.ByTeam -> stringResource(Res.string.history_title_filtered, selection.team.name)
                         is HistoryFilterSelection.ByTeacher -> stringResource(Res.string.history_title_filtered, selection.teacher.displayName)
                     }
                 } else {
@@ -193,8 +204,8 @@ fun AppRoot() {
                         entry<Login> { LoginScreen() }
                         entry<History> { HistoryScreen() }
                         entry<Leaderboard> {
-                            LeaderboardScreen(onHouseClick = { house ->
-                                historyFilter.set(HistoryFilterSelection.ByHouse(house))
+                            LeaderboardScreen(onTeamClick = { team ->
+                                historyFilter.set(HistoryFilterSelection.ByTeam(team))
                                 backStack.add(History)
                             })
                         }

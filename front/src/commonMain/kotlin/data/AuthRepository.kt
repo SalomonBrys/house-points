@@ -6,11 +6,11 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
-import house_points.front.generated.resources.Res
-import house_points.front.generated.resources.error_change_display_name_failed
-import house_points.front.generated.resources.error_change_password_failed
-import house_points.front.generated.resources.error_login_failed
-import house_points.front.generated.resources.error_malformed_token
+import team_points.front.generated.resources.Res
+import team_points.front.generated.resources.error_change_display_name_failed
+import team_points.front.generated.resources.error_change_password_failed
+import team_points.front.generated.resources.error_login_failed
+import team_points.front.generated.resources.error_malformed_token
 import org.jetbrains.compose.resources.getString
 
 class ApiException(message: String) : Exception(message)

@@ -28,7 +28,7 @@ final class EventsController
             $this->parsePageSize($query['page_size'] ?? null),
             $this->parseOptionalInt($query['before_id'] ?? null),
             $this->parseOptionalInt($query['teacher_id'] ?? null),
-            $this->parseOptionalInt($query['house_id'] ?? null),
+            $this->parseOptionalInt($query['team_id'] ?? null),
         );
 
         return $this->json($response, $result);

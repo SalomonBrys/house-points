@@ -12,7 +12,7 @@ val appDI = DI {
     bindSingleton { Session() }
     bindSingleton { createHttpClient(instance(), instance()) }
     bindSingleton { AuthRepository(instance(), instance(), instance()) }
-    bindSingleton { HousesRepository(instance()) }
+    bindSingleton { TeamsRepository(instance()) }
     bindSingleton { EventsRepository(instance()) }
     bindSingleton { UsersRepository(instance()) }
     bindSingleton { LeaderboardConfig() }

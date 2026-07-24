@@ -1,11 +1,11 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: house-points-mysql
+    container_name: team-points-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_NAME:-house_points}
-      MYSQL_USER: ${DB_USER:-house_points}
+      MYSQL_DATABASE: ${DB_NAME:-team_points}
+      MYSQL_USER: ${DB_USER:-team_points}
       MYSQL_PASSWORD: ${DB_PASS:-change-me}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-root-change-me}
     ports:

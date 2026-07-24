@@ -2,13 +2,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Typed request/response DTOs for the House Points API. Field names follow
+ * Typed request/response DTOs for the Team Points API. Field names follow
  * the backend's snake_case JSON via [SerialName]; see `back/ARCHITECTURE.md`
  * and `SPECS.md §5` for the authoritative contract.
  */
 
 @Serializable
-data class House(
+data class Team(
     val id: Int,
     val name: String,
     @SerialName("total_points") val totalPoints: Int,
@@ -24,7 +24,7 @@ data class Teacher(
 @Serializable
 data class PointEvent(
     val id: Int,
-    @SerialName("house_id") val houseId: Int,
+    @SerialName("team_id") val teamId: Int,
     @SerialName("teacher_id") val teacherId: Int,
     val points: Int,
     // Always AI-generated server-side (CommentGenerator); hp_point_events.comment is NOT NULL.
@@ -64,7 +64,7 @@ data class LogoutRequest(@SerialName("refresh_token") val refreshToken: String)
 data class AddPointsRequest(val points: Int)
 
 @Serializable
-data class CreateHouseRequest(val name: String)
+data class CreateTeamRequest(val name: String)
 
 @Serializable
 data class CreateUserRequest(

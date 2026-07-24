@@ -140,7 +140,7 @@ translation job (add a `values-xx/strings.xml`) if that ever changes.
   failure) surface as-is when there's no app-level fallback string to use
   instead. Translating those is a backend-side or case-by-case concern, not
   something the client's resource catalog can cover.
-- User-entered data (house names, display names, teacher comments) is never
+- User-entered data (team names, display names, teacher comments) is never
   routed through string resources — only *our* authored UI copy is.
 
 ## 11. API URL: build-time-configurable via `com.github.gmazzo.buildconfig`

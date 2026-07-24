@@ -35,26 +35,26 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import house_points.front.generated.resources.Res
-import house_points.front.generated.resources.action_add
-import house_points.front.generated.resources.action_cancel
-import house_points.front.generated.resources.action_delete
-import house_points.front.generated.resources.action_retry
-import house_points.front.generated.resources.admin_confirm_delete_house_message
-import house_points.front.generated.resources.admin_confirm_delete_house_title
-import house_points.front.generated.resources.admin_confirm_delete_teacher_message
-import house_points.front.generated.resources.admin_confirm_delete_teacher_title
-import house_points.front.generated.resources.admin_house_name
-import house_points.front.generated.resources.admin_houses_section
-import house_points.front.generated.resources.admin_no_teachers
-import house_points.front.generated.resources.admin_teachers_section
-import house_points.front.generated.resources.error_load_houses
-import house_points.front.generated.resources.label_display_name
-import house_points.front.generated.resources.label_password
-import house_points.front.generated.resources.label_username
-import house_points.front.generated.resources.public_no_houses
-import house_points.front.generated.resources.public_load_error
-import house_points.front.generated.resources.welcome_message
+import team_points.front.generated.resources.Res
+import team_points.front.generated.resources.action_add
+import team_points.front.generated.resources.action_cancel
+import team_points.front.generated.resources.action_delete
+import team_points.front.generated.resources.action_retry
+import team_points.front.generated.resources.admin_confirm_delete_team_message
+import team_points.front.generated.resources.admin_confirm_delete_team_title
+import team_points.front.generated.resources.admin_confirm_delete_teacher_message
+import team_points.front.generated.resources.admin_confirm_delete_teacher_title
+import team_points.front.generated.resources.admin_team_name
+import team_points.front.generated.resources.admin_teams_section
+import team_points.front.generated.resources.admin_no_teachers
+import team_points.front.generated.resources.admin_teachers_section
+import team_points.front.generated.resources.error_load_teams
+import team_points.front.generated.resources.label_display_name
+import team_points.front.generated.resources.label_password
+import team_points.front.generated.resources.label_username
+import team_points.front.generated.resources.public_no_teams
+import team_points.front.generated.resources.public_load_error
+import team_points.front.generated.resources.welcome_message
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,12 +67,12 @@ import org.kodein.di.instance
 
 sealed interface AdminUiState {
     data object Loading : AdminUiState
-    data class Success(val houses: List<House>, val teachers: List<Teacher>) : AdminUiState
+    data class Success(val teams: List<Team>, val teachers: List<Teacher>) : AdminUiState
     data class Error(val message: String) : AdminUiState
 }
 
 class AdminViewModel(
-    private val houses: HousesRepository,
+    private val teams: TeamsRepository,
     private val users: UsersRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow<AdminUiState>(AdminUiState.Loading)
@@ -89,16 +89,16 @@ class AdminViewModel(
         viewModelScope.launch {
             _state.value = AdminUiState.Loading
             _state.value = try {
-                AdminUiState.Success(houses.listActive(), users.listTeachers())
+                AdminUiState.Success(teams.listActive(), users.listTeachers())
             } catch (e: Exception) {
-                AdminUiState.Error(e.message ?: getString(Res.string.error_load_houses))
+                AdminUiState.Error(e.message ?: getString(Res.string.error_load_teams))
             }
         }
     }
 
-    fun addHouse(name: String) = runAction { houses.create(name) }
+    fun addTeam(name: String) = runAction { teams.create(name) }
 
-    fun removeHouse(id: Int) = runAction { houses.deactivate(id) }
+    fun removeTeam(id: Int) = runAction { teams.deactivate(id) }
 
     fun addTeacher(displayName: String, username: String, password: String) = runAction {
         users.create(username, password, "teacher", displayName)
@@ -120,12 +120,12 @@ class AdminViewModel(
 }
 
 private sealed interface PendingDelete {
-    data class HouseDelete(val house: House) : PendingDelete
+    data class TeamDelete(val team: Team) : PendingDelete
     data class TeacherDelete(val teacher: Teacher) : PendingDelete
 }
 
 /**
- * Admin home: manage houses and teacher accounts (`SPECS.md §6`). Chrome
+ * Admin home: manage teams and teacher accounts (`SPECS.md §6`). Chrome
  * (top bar/drawer) lives in [AppRoot], this is content-only.
  */
 @Composable
@@ -165,10 +165,10 @@ fun AdminScreen() {
                 }
 
                 is AdminUiState.Success -> {
-                    HousesSection(
-                        houses = current.houses,
-                        onAdd = { name -> viewModel.addHouse(name) },
-                        onDeleteRequested = { house -> pendingDelete = PendingDelete.HouseDelete(house) },
+                    TeamsSection(
+                        teams = current.teams,
+                        onAdd = { name -> viewModel.addTeam(name) },
+                        onDeleteRequested = { team -> pendingDelete = PendingDelete.TeamDelete(team) },
                     )
                     Spacer(Modifier.height(16.dp))
                     TeachersSection(
@@ -185,11 +185,11 @@ fun AdminScreen() {
     }
 
     when (val pending = pendingDelete) {
-        is PendingDelete.HouseDelete -> ConfirmDeleteDialog(
-            title = stringResource(Res.string.admin_confirm_delete_house_title),
-            message = stringResource(Res.string.admin_confirm_delete_house_message, pending.house.name),
+        is PendingDelete.TeamDelete -> ConfirmDeleteDialog(
+            title = stringResource(Res.string.admin_confirm_delete_team_title),
+            message = stringResource(Res.string.admin_confirm_delete_team_message, pending.team.name),
             onConfirm = {
-                viewModel.removeHouse(pending.house.id)
+                viewModel.removeTeam(pending.team.id)
                 pendingDelete = null
             },
             onDismiss = { pendingDelete = null },
@@ -210,23 +210,23 @@ fun AdminScreen() {
 }
 
 @Composable
-private fun HousesSection(
-    houses: List<House>,
+private fun TeamsSection(
+    teams: List<Team>,
     onAdd: (name: String) -> Unit,
-    onDeleteRequested: (House) -> Unit,
+    onDeleteRequested: (Team) -> Unit,
 ) {
     Column {
-        Text(stringResource(Res.string.admin_houses_section), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(Res.string.admin_teams_section), style = MaterialTheme.typography.titleMedium)
 
-        if (houses.isEmpty()) {
-            Text(stringResource(Res.string.public_no_houses))
+        if (teams.isEmpty()) {
+            Text(stringResource(Res.string.public_no_teams))
         } else {
             Column {
-                houses.forEach { house ->
+                teams.forEach { team ->
                     ListItem(
-                        headlineContent = { Text(house.name) },
+                        headlineContent = { Text(team.name) },
                         trailingContent = {
-                            IconButton(onClick = { onDeleteRequested(house) }) {
+                            IconButton(onClick = { onDeleteRequested(team) }) {
                                 Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.action_delete))
                             }
                         },
@@ -245,7 +245,7 @@ private fun HousesSection(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(Res.string.admin_house_name)) },
+                label = { Text(stringResource(Res.string.admin_team_name)) },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )

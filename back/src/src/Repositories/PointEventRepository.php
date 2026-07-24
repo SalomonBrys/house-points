@@ -12,14 +12,14 @@ final class PointEventRepository
     {
     }
 
-    public function create(int $houseId, int $teacherId, int $points, string $comment): int
+    public function create(int $teamId, int $teacherId, int $points, string $comment): int
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO hp_point_events (house_id, teacher_id, points, comment)
-             VALUES (:house_id, :teacher_id, :points, :comment)'
+            'INSERT INTO hp_point_events (team_id, teacher_id, points, comment)
+             VALUES (:team_id, :teacher_id, :points, :comment)'
         );
         $stmt->execute([
-            'house_id' => $houseId,
+            'team_id' => $teamId,
             'teacher_id' => $teacherId,
             'points' => $points,
             'comment' => $comment,
@@ -29,12 +29,12 @@ final class PointEventRepository
     }
 
     /**
-     * @return array{id: int, house_id: int, teacher_id: int, points: int, comment: string, created_at: string}|null
+     * @return array{id: int, team_id: int, teacher_id: int, points: int, comment: string, created_at: string}|null
      */
     public function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, house_id, teacher_id, points, comment, created_at
+            'SELECT id, team_id, teacher_id, points, comment, created_at
              FROM hp_point_events
              WHERE id = :id
              LIMIT 1'
@@ -57,7 +57,7 @@ final class PointEventRepository
      *
      * @return array{events: array<int, array<string, mixed>>, next_id: int|null}
      */
-    public function listPaginated(int $pageSize, ?int $beforeId, ?int $teacherId, ?int $houseId): array
+    public function listPaginated(int $pageSize, ?int $beforeId, ?int $teacherId, ?int $teamId): array
     {
         $conditions = [];
         $params = [];
@@ -72,16 +72,16 @@ final class PointEventRepository
             $params['teacher_id'] = $teacherId;
         }
 
-        if ($houseId !== null) {
-            $conditions[] = 'house_id = :house_id';
-            $params['house_id'] = $houseId;
+        if ($teamId !== null) {
+            $conditions[] = 'team_id = :team_id';
+            $params['team_id'] = $teamId;
         }
 
         $where = $conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions);
 
         // Fetch one extra row to know whether a next page exists.
         $stmt = $this->pdo->prepare(
-            "SELECT id, house_id, teacher_id, points, comment, created_at
+            "SELECT id, team_id, teacher_id, points, comment, created_at
              FROM hp_point_events
              $where
              ORDER BY id DESC
@@ -120,7 +120,7 @@ final class PointEventRepository
     public function listSince(int $sinceId, int $pageSize): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, house_id, teacher_id, points, comment, created_at
+            'SELECT id, team_id, teacher_id, points, comment, created_at
              FROM hp_point_events
              WHERE id > :since_id
              ORDER BY id ASC

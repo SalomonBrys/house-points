@@ -4,27 +4,27 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Repositories\HouseRepository;
+use App\Repositories\TeamRepository;
 use App\Support\JsonResponder;
 use App\Support\ValidatesInput;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-final class HousesController
+final class TeamsController
 {
     use JsonResponder;
     use ValidatesInput;
 
-    // Matches hp_houses.name VARCHAR(100).
+    // Matches hp_teams.name VARCHAR(100).
     private const NAME_MAX = 100;
 
-    public function __construct(private readonly HouseRepository $houses)
+    public function __construct(private readonly TeamRepository $teams)
     {
     }
 
     public function index(Request $request, Response $response): Response
     {
-        return $this->json($response, $this->houses->allActiveWithTotals());
+        return $this->json($response, $this->teams->allActiveWithTotals());
     }
 
     public function store(Request $request, Response $response): Response
@@ -35,7 +35,7 @@ final class HousesController
             return $this->json($response, ['error' => $error], 422);
         }
 
-        $id = $this->houses->create(trim((string) $body['name']));
+        $id = $this->teams->create(trim((string) $body['name']));
 
         return $this->json($response, ['id' => $id], 201);
     }
@@ -47,11 +47,11 @@ final class HousesController
     {
         $id = (int) $args['id'];
 
-        if (!$this->houses->existsById($id)) {
-            return $this->json($response, ['error' => 'House not found'], 404);
+        if (!$this->teams->existsById($id)) {
+            return $this->json($response, ['error' => 'Team not found'], 404);
         }
 
-        $this->houses->deactivate($id);
+        $this->teams->deactivate($id);
 
         return $response->withStatus(204);
     }

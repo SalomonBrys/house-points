@@ -21,7 +21,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "house-points"
+rootProject.name = "team-points"
 
 include(
     ":back",

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Repositories\HouseRepository;
 use App\Repositories\PointEventRepository;
+use App\Repositories\TeamRepository;
 use App\Repositories\UserRepository;
 use App\Services\CommentGenerator;
 use App\Support\JsonResponder;
@@ -18,7 +18,7 @@ final class PointEventsController
 
     public function __construct(
         private readonly PointEventRepository $pointEvents,
-        private readonly HouseRepository $houses,
+        private readonly TeamRepository $teams,
         private readonly UserRepository $users,
         private readonly CommentGenerator $commentGenerator,
     ) {
@@ -29,11 +29,11 @@ final class PointEventsController
      */
     public function store(Request $request, Response $response, array $args): Response
     {
-        $houseId = (int) $args['houseId'];
-        $house = $this->houses->findActive($houseId);
+        $teamId = (int) $args['teamId'];
+        $team = $this->teams->findActive($teamId);
 
-        if ($house === null) {
-            return $this->json($response, ['error' => 'House not found'], 404);
+        if ($team === null) {
+            return $this->json($response, ['error' => 'Team not found'], 404);
         }
 
         $body = (array) $request->getParsedBody();
@@ -48,9 +48,9 @@ final class PointEventsController
         $teacher = $this->users->findActiveById($teacherId);
         $teacherName = $teacher['display_name'] ?? ($claims['username'] ?? 'Un enseignant');
 
-        $comment = $this->commentGenerator->generate($teacherName, $house['name'], $points);
+        $comment = $this->commentGenerator->generate($teacherName, $team['name'], $points);
 
-        $id = $this->pointEvents->create($houseId, $teacherId, $points, $comment);
+        $id = $this->pointEvents->create($teamId, $teacherId, $points, $comment);
 
         return $this->json($response, ['id' => $id], 201);
     }

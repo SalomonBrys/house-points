@@ -9,15 +9,15 @@ use App\Auth\RefreshTokenService;
 use App\Auth\RequireRoleMiddleware;
 use App\Controllers\AuthController;
 use App\Controllers\EventsController;
-use App\Controllers\HousesController;
 use App\Controllers\MeController;
 use App\Controllers\PointEventsController;
+use App\Controllers\TeamsController;
 use App\Controllers\UsersController;
 use App\Database;
 use App\Http\CorsMiddleware;
-use App\Repositories\HouseRepository;
 use App\Repositories\PointEventRepository;
 use App\Repositories\RefreshTokenRepository;
+use App\Repositories\TeamRepository;
 use App\Repositories\UserRepository;
 use App\Services\CommentGenerator;
 use Slim\Factory\AppFactory;
@@ -41,7 +41,7 @@ $jwtService = new JwtService(
 );
 
 $userRepository = new UserRepository($pdo);
-$houseRepository = new HouseRepository($pdo);
+$teamRepository = new TeamRepository($pdo);
 $pointEventRepository = new PointEventRepository($pdo);
 $refreshTokenService = new RefreshTokenService(new RefreshTokenRepository($pdo));
 
@@ -53,10 +53,10 @@ $responseFactory = new ResponseFactory();
 $deps = [
     'auth' => new AuthController($userRepository, $jwtService, $refreshTokenService),
     'me' => new MeController($userRepository, $jwtService, $refreshTokenService),
-    'houses' => new HousesController($houseRepository),
+    'teams' => new TeamsController($teamRepository),
     'pointEvents' => new PointEventsController(
         $pointEventRepository,
-        $houseRepository,
+        $teamRepository,
         $userRepository,
         $commentGenerator,
     ),

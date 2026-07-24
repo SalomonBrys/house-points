@@ -7,7 +7,7 @@ CREATE TABLE hp_users (
     active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE hp_houses (
+CREATE TABLE hp_teams (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE
@@ -15,15 +15,15 @@ CREATE TABLE hp_houses (
 
 CREATE TABLE hp_point_events (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    house_id INT UNSIGNED NOT NULL,
+    team_id INT UNSIGNED NOT NULL,
     teacher_id INT UNSIGNED NOT NULL,
     points INT NOT NULL,
     comment VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_point_events_points_nonzero CHECK (points <> 0),
-    FOREIGN KEY (house_id) REFERENCES hp_houses(id),
+    FOREIGN KEY (team_id) REFERENCES hp_teams(id),
     FOREIGN KEY (teacher_id) REFERENCES hp_users(id),
-    INDEX idx_point_events_house_created (house_id, created_at),
+    INDEX idx_point_events_team_created (team_id, created_at),
     INDEX idx_point_events_teacher_created (teacher_id, created_at)
 );
 

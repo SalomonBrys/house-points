@@ -77,6 +77,7 @@ kotlin {
         webMain.dependencies {
             implementation("io.ktor:ktor-client-js:${ktor}")
             implementation("org.jetbrains.kotlinx:kotlinx-browser:0.5.0")
+            implementation("com.github.terrakok:navigation3-browser:1.1.0")
         }
     }
 }

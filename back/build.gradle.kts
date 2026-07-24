@@ -61,6 +61,6 @@ tasks.register<Exec>("phpServe") {
     commandLine("php", "-S", "$phpHost:$phpPort", "-t", "public")
 
     doFirst {
-        logger.lifecycle("Serving House Points API at http://$phpHost:$phpPort (Ctrl+C to stop)")
+        logger.lifecycle("Serving Team Points API at http://$phpHost:$phpPort (Ctrl+C to stop)")
     }
 }

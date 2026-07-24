@@ -25,7 +25,7 @@ const STATIC_MIME_TYPES = [
  * @param array{
  *     auth: App\Controllers\AuthController,
  *     me: App\Controllers\MeController,
- *     houses: App\Controllers\HousesController,
+ *     teams: App\Controllers\TeamsController,
  *     pointEvents: App\Controllers\PointEventsController,
  *     events: App\Controllers\EventsController,
  *     users: App\Controllers\UsersController,
@@ -39,14 +39,14 @@ return function (App $app, array $deps): void {
     $app->post('/api/auth/refresh', [$deps['auth'], 'refresh']);
     $app->post('/api/auth/logout', [$deps['auth'], 'logout']);
 
-    $app->get('/api/houses', [$deps['houses'], 'index']);
+    $app->get('/api/teams', [$deps['teams'], 'index']);
     $app->get('/api/teachers', [$deps['users'], 'index']);
     $app->get('/api/events', [$deps['events'], 'index']);
     $app->get('/api/events/since', [$deps['events'], 'since']);
 
     // --- Any authenticated user (teacher or admin) ---
     $app->group('/api', function (RouteCollectorProxy $group) use ($deps) {
-        $group->post('/houses/{houseId}/points', [$deps['pointEvents'], 'store']);
+        $group->post('/teams/{teamId}/points', [$deps['pointEvents'], 'store']);
         $group->delete('/events/{id}', [$deps['pointEvents'], 'destroy']);
         $group->patch('/me/password', [$deps['me'], 'changePassword']);
         $group->patch('/me/display-name', [$deps['me'], 'changeDisplayName']);
@@ -56,8 +56,8 @@ return function (App $app, array $deps): void {
     // Middleware added last runs first: jwtAuth must verify/attach claims
     // before requireAdmin reads the role off them.
     $app->group('/api', function (RouteCollectorProxy $group) use ($deps) {
-        $group->post('/houses', [$deps['houses'], 'store']);
-        $group->delete('/houses/{id}', [$deps['houses'], 'destroy']);
+        $group->post('/teams', [$deps['teams'], 'store']);
+        $group->delete('/teams/{id}', [$deps['teams'], 'destroy']);
         $group->post('/teachers', [$deps['users'], 'store']);
         $group->delete('/teachers/{id}', [$deps['users'], 'destroy']);
     })->add($deps['requireAdmin'])->add($deps['jwtAuth']);

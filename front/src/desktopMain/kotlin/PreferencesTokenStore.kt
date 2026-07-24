@@ -1,6 +1,6 @@
 import java.util.prefs.Preferences
 
-actual fun createTokenStore(): TokenStore = PreferencesTokenStore(Preferences.userRoot().node("house-points"))
+actual fun createTokenStore(): TokenStore = PreferencesTokenStore(Preferences.userRoot().node("team-points"))
 
 private class PreferencesTokenStore(private val prefs: Preferences) : TokenStore {
     override fun current(): TokenPair? = prefs.get(KEY, null)?.toTokenPairOrNull()
