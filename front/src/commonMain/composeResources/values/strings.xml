@@ -52,6 +52,35 @@
     <string name="history_filter_teachers_section">Enseignants</string>
     <string name="history_empty">Aucun événement pour le moment.</string>
     <string name="history_load_more">Charger plus</string>
+    <!-- Event timestamp display, e.g. "Vendredi 24 juillet à 10h45"; the day-of-week
+         and month names are looked up by index (Monday-first, matching
+         DayOfWeek.isoDayNumber, and calendar order respectively) rather than
+         formatted by kotlinx-datetime, per this app's all-strings-are-resources
+         convention. %1=day name, %2=day-of-month, %3=month name, %4=hour, %5=minutes. -->
+    <string-array name="date_day_names">
+        <item>Lundi</item>
+        <item>Mardi</item>
+        <item>Mercredi</item>
+        <item>Jeudi</item>
+        <item>Vendredi</item>
+        <item>Samedi</item>
+        <item>Dimanche</item>
+    </string-array>
+    <string-array name="date_month_names">
+        <item>janvier</item>
+        <item>février</item>
+        <item>mars</item>
+        <item>avril</item>
+        <item>mai</item>
+        <item>juin</item>
+        <item>juillet</item>
+        <item>août</item>
+        <item>septembre</item>
+        <item>octobre</item>
+        <item>novembre</item>
+        <item>décembre</item>
+    </string-array>
+    <string name="history_event_datetime">%1$s %2$d %3$s à %4$dh%5$s</string>
 
     <!-- Teacher screen -->
     <string name="teacher_house_label">Maison</string>

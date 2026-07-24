@@ -176,7 +176,12 @@ fun AppRoot() {
                     entryProvider = entryProvider {
                         entry<Login> { LoginScreen() }
                         entry<History> { HistoryScreen() }
-                        entry<Leaderboard> { LeaderboardScreen() }
+                        entry<Leaderboard> {
+                            LeaderboardScreen(onHouseClick = { house ->
+                                historyFilter.set(HistoryFilterSelection.ByHouse(house))
+                                backStack.add(History)
+                            })
+                        }
                         entry<TeacherHome> { TeacherScreen() }
                         entry<AdminHome> { AdminScreen() }
                     },

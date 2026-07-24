@@ -198,7 +198,7 @@ class LeaderboardViewModel(private val housesRepository: HousesRepository) : Vie
  * remains a future follow-up.
  */
 @Composable
-fun LeaderboardScreen() {
+fun LeaderboardScreen(onHouseClick: (House) -> Unit) {
     val di = localDI()
     val viewModel = viewModel { LeaderboardViewModel(di.direct.instance()) }
     val houses by viewModel.houses.collectAsState()
@@ -255,6 +255,7 @@ fun LeaderboardScreen() {
                         HouseCard(
                             house = house,
                             fontScale = fontScale,
+                            onClick = { onHouseClick(house) },
                             modifier = Modifier.animateItem(
                                 placementSpec = tween(1500)
                             )
@@ -268,8 +269,8 @@ fun LeaderboardScreen() {
 }
 
 @Composable
-private fun HouseCard(house: House, fontScale: Float, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.fillMaxWidth()) {
+private fun HouseCard(house: House, fontScale: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

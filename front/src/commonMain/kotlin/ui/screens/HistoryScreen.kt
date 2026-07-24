@@ -1,4 +1,5 @@
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -39,8 +40,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import house_points.front.generated.resources.Res
 import house_points.front.generated.resources.action_retry
+import house_points.front.generated.resources.date_day_names
+import house_points.front.generated.resources.date_month_names
 import house_points.front.generated.resources.error_load_events
 import house_points.front.generated.resources.history_empty
+import house_points.front.generated.resources.history_event_datetime
 import house_points.front.generated.resources.history_filter_all
 import house_points.front.generated.resources.history_filter_description
 import house_points.front.generated.resources.history_filter_houses_section
@@ -51,7 +55,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.format.char
+import kotlinx.datetime.isoDayNumber
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.kodein.di.compose.localDI
 import org.kodein.di.direct
@@ -230,8 +238,44 @@ private fun EventRow(event: PointEvent, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = MaterialTheme.colorScheme.onSurface),
     ) {
-        Text(event.comment, modifier = Modifier.padding(16.dp))
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                formatEventTimestamp(event.createdAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            )
+            Text(event.comment)
+        }
     }
+}
+
+// Backend sends MySQL DATETIME, e.g. "2026-07-23 14:02:11".
+private val EVENT_TIMESTAMP_FORMAT = LocalDateTime.Format {
+    year(); char('-'); monthNumber(); char('-'); dayOfMonth()
+    char(' '); hour(); char(':'); minute(); char(':'); second()
+}
+
+/**
+ * Renders an event's `created_at` as e.g. "Vendredi 24 juillet à 10h45". Only
+ * numeric parsing is done in code; the day/month names and the assembly
+ * template are compose resources (`date_day_names`/`date_month_names`/
+ * `history_event_datetime`), per this app's all-strings-are-resources
+ * convention (`front/ARCHITECTURE.md`).
+ */
+@Composable
+private fun formatEventTimestamp(raw: String): String {
+    val parsed = remember(raw) { runCatching { EVENT_TIMESTAMP_FORMAT.parse(raw) }.getOrNull() }
+        ?: return raw // unexpected format -> show the raw string rather than crash
+    val dayNames = stringArrayResource(Res.array.date_day_names)
+    val monthNames = stringArrayResource(Res.array.date_month_names)
+    return stringResource(
+        Res.string.history_event_datetime,
+        dayNames[parsed.dayOfWeek.isoDayNumber - 1], // isoDayNumber: 1=Mon..7=Sun
+        parsed.dayOfMonth,
+        monthNames[parsed.monthNumber - 1],
+        parsed.hour,
+        parsed.minute.toString().padStart(2, '0'),
+    )
 }
 
 /**
