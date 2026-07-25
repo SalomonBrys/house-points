@@ -1,0 +1,16 @@
+RewriteEngine On
+
+# Route every request to public/index.php — no exceptions. It handles /api/*
+# and serves the compiled front end by reading individual files out of
+# static/ (see routes.php's catch-all route), so Apache never needs to serve
+# anything directly:
+#   - no "!-d": without it, a bare directory request (e.g. the site root
+#     "/") fell through to Apache's own DirectoryIndex resolution instead of
+#     being rewritten — and found nothing, since there's no index.html/
+#     index.php placed directly at the deploy root (routes.php serves "/"
+#     from static/index.html instead), causing a 404.
+#   - no "!-f": without it, any file that happens to physically exist at the
+#     deploy root (vendor/*.php, AIPrompt.txt, src/*.php, ...) would bypass
+#     the router and be served/executed by Apache directly, instead of
+#     404ing via the static/-scoped catch-all.
+RewriteRule ^ public/index.php [QSA,L]
