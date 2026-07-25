@@ -118,10 +118,14 @@ of straightforward `new` calls.
 ## 7. Configuration: `vlucas/phpdotenv`
 
 Environment variables (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`,
-`DB_ROOT_PASS`, `JWT_SECRET`, `JWT_TTL`, `APP_DEBUG`) will be loaded from a
-`.env` file via `Dotenv::createImmutable(...)->safeLoad()`. A `.env.example`
-should be committed as the documented template, with `.env` itself
-gitignored.
+`DB_ROOT_PASS`, `JWT_SECRET`, `JWT_TTL`, `APP_DEBUG`, `BASE_PATH`) will be
+loaded from a `.env` file via `Dotenv::createImmutable(...)->safeLoad()`. A
+`.env.example` should be committed as the documented template, with `.env`
+itself gitignored.
+
+`BASE_PATH` is optional and empty by default; when set (e.g. `teampoints`), it
+is passed to Slim's `setBasePath()` so the app can be deployed under a
+subdirectory (`https://whatever.com/teampoints/...`) instead of the domain root.
 
 ## 8. Local development environment
 

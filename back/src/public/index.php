@@ -72,6 +72,16 @@ $corsAllowedOrigins = array_values(array_filter(array_map(
 )));
 
 $app = AppFactory::create();
+
+// Optional: deploy under a subdirectory (e.g. https://whatever.com/teampoints)
+// by having Slim strip that prefix before routing. trim() accepts BASE_PATH
+// with or without leading/trailing slashes; empty (the default) leaves
+// routing at the domain root, unchanged.
+$basePath = trim($_ENV['BASE_PATH'] ?? '', '/');
+if ($basePath !== '') {
+    $app->setBasePath('/' . $basePath);
+}
+
 $app->addBodyParsingMiddleware();
 $app->addErrorMiddleware(
     displayErrorDetails: filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOL),
