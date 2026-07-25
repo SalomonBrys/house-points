@@ -144,6 +144,7 @@ fun AppRoot() {
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = false,
         drawerContent = {
             AppDrawerContent(
                 authState = authState,
