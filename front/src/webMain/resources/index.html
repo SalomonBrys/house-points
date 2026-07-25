@@ -11,6 +11,12 @@
             padding: 0;
             overflow: hidden;
         }
+        /* Native input backing the Enseignant points field (PointsAmountField.web.kt) —
+           the placeholder color is set as a CSS custom property since it can't be set inline. */
+        .points-amount-field::placeholder {
+            color: var(--points-placeholder-color, currentColor);
+            opacity: 1;
+        }
     </style>
 </head>
 <body>

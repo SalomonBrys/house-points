@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberScrollbarAdapter
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -32,10 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -325,28 +319,14 @@ private fun SignedAmountInput(
             modifier = Modifier
                 .clickable(enabled = enabled, onClickLabel = signDescription, onClick = onSignClick),
         )
-        BasicTextField(
-            value = amountText,
-            onValueChange = onAmountChange,
+        PointsAmountField(
+            amountText = amountText,
+            onAmountChange = onAmountChange,
             enabled = enabled,
-            singleLine = true,
-            textStyle = TextStyle(fontSize = AmountFontSize, color = displayColor, textAlign = TextAlign.Center),
-            cursorBrush = SolidColor(displayColor),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            displayColor = displayColor,
+            placeholderColor = disabledColor,
+            fontSize = AmountFontSize,
             modifier = Modifier.width(192.dp),
-            decorationBox = { innerTextField ->
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    if (amountText.isEmpty()) {
-                        Text(
-                            text = "0",
-                            style = MaterialTheme.typography.displayMedium,
-                            fontSize = AmountFontSize,
-                            color = disabledColor,
-                        )
-                    }
-                    innerTextField()
-                }
-            },
         )
     }
 }
