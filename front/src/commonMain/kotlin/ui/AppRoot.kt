@@ -86,10 +86,10 @@ expect fun BrowserNavigationSync(backStack: NavBackStack<NavKey>, historyFilter:
  * back stack, so individual screens carry no chrome of their own. Public
  * screens (leaderboard/[Leaderboard], history, login) are always reachable
  * from the drawer; an explicit login routes to the role's home, a restored
- * session (see [AuthRepository.restoreSession]) always routes to
- * [Leaderboard] instead, and a logout routes back to [Leaderboard] too —
- * driven by observing [Session] rather than by the screens navigating
- * themselves.
+ * session (see [AuthRepository.restoreSession]) preserves whatever route the
+ * URL/back stack already resolved to (so a reload or direct link stays put),
+ * and a logout routes back to [Leaderboard] too — driven by observing
+ * [Session] rather than by the screens navigating themselves.
  */
 @Composable
 fun AppRoot() {
@@ -128,14 +128,18 @@ fun AppRoot() {
     LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.LoggedIn -> {
-                val home = when {
-                    state.source == LoginSource.RESTORED -> Leaderboard
-                    state.role == "admin" -> AdminHome
-                    else -> TeacherHome
-                }
-                if (backStack.lastOrNull() != home) {
-                    backStack.clear()
-                    backStack.add(home)
+                // Only an explicit login routes to the role's home. A restored
+                // session preserves the route the URL/back stack already
+                // resolved to, so a reload or direct link stays put instead of
+                // snapping to Leaderboard. (With no hash the initial stack is
+                // already [Leaderboard], so a returning user opening the bare
+                // site still lands there.)
+                if (state.source == LoginSource.EXPLICIT) {
+                    val home = if (state.role == "admin") AdminHome else TeacherHome
+                    if (backStack.lastOrNull() != home) {
+                        backStack.clear()
+                        backStack.add(home)
+                    }
                 }
             }
 
