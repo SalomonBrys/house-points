@@ -65,11 +65,18 @@ import org.kodein.di.compose.localDI
 import org.kodein.di.direct
 import org.kodein.di.instance
 
-/** Which single dimension, if any, the history list is currently narrowed to. */
+/**
+ * Which single dimension, if any, the history list is currently narrowed to.
+ * Holds ids rather than the full [Team]/[Teacher] objects: this selection is
+ * also encoded in the browser URL on web (`BrowserNavigationSync`), whose
+ * `restoreKey` is synchronous and so can't fetch an object over the network
+ * while parsing — only an id round-trips without I/O. The display name (for
+ * the top-bar title) is resolved separately; see [HistoryFilter.selectionName].
+ */
 sealed interface HistoryFilterSelection {
     data object All : HistoryFilterSelection
-    data class ByTeam(val team: Team) : HistoryFilterSelection
-    data class ByTeacher(val teacher: Teacher) : HistoryFilterSelection
+    data class ByTeam(val teamId: Int) : HistoryFilterSelection
+    data class ByTeacher(val teacherId: Int) : HistoryFilterSelection
 }
 
 /**
@@ -84,8 +91,20 @@ class HistoryFilter {
     private val _selection = MutableStateFlow<HistoryFilterSelection>(HistoryFilterSelection.All)
     val selection: StateFlow<HistoryFilterSelection> = _selection.asStateFlow()
 
+    // Resolved display name for the current selection — null for [HistoryFilterSelection.All],
+    // or briefly null right after a URL-restored by-id selection until
+    // [HistoryTopBarActions] (which already fetches the active teams/teachers
+    // lists for its dropdown) resolves it. AppRoot's title reads this instead
+    // of duplicating that fetch.
+    private val _selectionName = MutableStateFlow<String?>(null)
+    val selectionName: StateFlow<String?> = _selectionName.asStateFlow()
+
     fun set(selection: HistoryFilterSelection) {
         _selection.value = selection
+    }
+
+    fun setSelectionName(name: String?) {
+        _selectionName.value = name
     }
 }
 
@@ -163,8 +182,8 @@ class HistoryViewModel(
 
     private suspend fun fetchPage(beforeId: Int?) = when (val selection = currentSelection) {
         HistoryFilterSelection.All -> events.listPaginated(beforeId = beforeId)
-        is HistoryFilterSelection.ByTeam -> events.listPaginated(beforeId = beforeId, teamId = selection.team.id)
-        is HistoryFilterSelection.ByTeacher -> events.listPaginated(beforeId = beforeId, teacherId = selection.teacher.id)
+        is HistoryFilterSelection.ByTeam -> events.listPaginated(beforeId = beforeId, teamId = selection.teamId)
+        is HistoryFilterSelection.ByTeacher -> events.listPaginated(beforeId = beforeId, teacherId = selection.teacherId)
     }
 }
 
@@ -268,11 +287,17 @@ private fun formatEventTimestamp(raw: String): String {
         ?: return raw // unexpected format -> show the raw string rather than crash
     val dayNames = stringArrayResource(Res.array.date_day_names)
     val monthNames = stringArrayResource(Res.array.date_month_names)
+    // stringArrayResource can transiently return an empty list while the
+    // resource is still loading (observed live) — fall back to the raw
+    // string rather than crash on an out-of-bounds index; a recomposition
+    // once the array is actually loaded renders the formatted version.
+    val dayName = dayNames.getOrNull(parsed.dayOfWeek.isoDayNumber - 1) ?: return raw // isoDayNumber: 1=Mon..7=Sun
+    val monthName = monthNames.getOrNull(parsed.monthNumber - 1) ?: return raw
     return stringResource(
         Res.string.history_event_datetime,
-        dayNames[parsed.dayOfWeek.isoDayNumber - 1], // isoDayNumber: 1=Mon..7=Sun
+        dayName,
         parsed.dayOfMonth,
-        monthNames[parsed.monthNumber - 1],
+        monthName,
         parsed.hour,
         parsed.minute.toString().padStart(2, '0'),
     )
@@ -298,6 +323,19 @@ fun HistoryTopBarActions() {
         // empty — "Tout afficher" remains available regardless.
         runCatching { teams = teamsRepository.listActive() }
         runCatching { teachers = usersRepository.listTeachers() }
+    }
+
+    // Publishes the resolved display name for AppRoot's title (see
+    // HistoryFilter.selectionName) once both the current selection and the
+    // fetched lists are available. Re-runs if either changes.
+    LaunchedEffect(selection, teams, teachers) {
+        filter.setSelectionName(
+            when (val current = selection) {
+                HistoryFilterSelection.All -> null
+                is HistoryFilterSelection.ByTeam -> teams.firstOrNull { it.id == current.teamId }?.name
+                is HistoryFilterSelection.ByTeacher -> teachers.firstOrNull { it.id == current.teacherId }?.displayName
+            }
+        )
     }
 
     var expanded by remember { mutableStateOf(false) }
@@ -329,13 +367,13 @@ fun HistoryTopBarActions() {
                 teams.forEach { team ->
                     DropdownMenuItem(
                         text = { Text(team.name) },
-                        leadingIcon = if (selection == HistoryFilterSelection.ByTeam(team)) {
+                        leadingIcon = if (selection == HistoryFilterSelection.ByTeam(team.id)) {
                             { Icon(Icons.Filled.Check, contentDescription = null) }
                         } else {
                             null
                         },
                         onClick = {
-                            filter.set(HistoryFilterSelection.ByTeam(team))
+                            filter.set(HistoryFilterSelection.ByTeam(team.id))
                             expanded = false
                         },
                     )
@@ -352,13 +390,13 @@ fun HistoryTopBarActions() {
                 teachers.forEach { teacher ->
                     DropdownMenuItem(
                         text = { Text(teacher.displayName) },
-                        leadingIcon = if (selection == HistoryFilterSelection.ByTeacher(teacher)) {
+                        leadingIcon = if (selection == HistoryFilterSelection.ByTeacher(teacher.id)) {
                             { Icon(Icons.Filled.Check, contentDescription = null) }
                         } else {
                             null
                         },
                         onClick = {
-                            filter.set(HistoryFilterSelection.ByTeacher(teacher))
+                            filter.set(HistoryFilterSelection.ByTeacher(teacher.id))
                             expanded = false
                         },
                     )

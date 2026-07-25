@@ -79,7 +79,7 @@ private val navConfig = SavedStateConfiguration { serializersModule = navSeriali
  * the app, like a normal website. No-op on desktop (no browser to sync with).
  */
 @Composable
-expect fun BrowserNavigationSync(backStack: NavBackStack<NavKey>)
+expect fun BrowserNavigationSync(backStack: NavBackStack<NavKey>, historyFilter: HistoryFilter)
 
 /**
  * Top-level app shell: one shared drawer + top bar wrapping the Navigation3
@@ -99,11 +99,24 @@ fun AppRoot() {
     val authState by session.state.collectAsState()
     val historyFilter = di.direct.instance<HistoryFilter>()
     val historyFilterSelection by historyFilter.selection.collectAsState()
+    val historyFilterName by historyFilter.selectionName.collectAsState()
 
     val backStack = rememberNavBackStack(navConfig, Leaderboard)
-    BrowserNavigationSync(backStack)
+    BrowserNavigationSync(backStack, historyFilter)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    // Picking a filter while already on Historique doesn't touch backStack,
+    // so the browser-URL sync (which only reacts to backStack changes, via
+    // ChronologicalBrowserNavigation's snapshotFlow) would never notice.
+    // Force a re-check by reassigning the same Screen at the same index —
+    // a same-value write, not a size change, so it shouldn't disturb
+    // HistoryScreen's nav-entry-scoped state.
+    LaunchedEffect(historyFilterSelection) {
+        if (backStack.lastOrNull() is History) {
+            backStack[backStack.lastIndex] = History
+        }
+    }
 
     // One-shot: restores a returning user's session from persisted tokens, if
     // any (see AuthRepository.restoreSession). The LaunchedEffect(authState)
@@ -161,10 +174,10 @@ fun AppRoot() {
         Scaffold(
             topBar = {
                 val title = if (currentScreen is History) {
-                    when (val selection = historyFilterSelection) {
+                    when (historyFilterSelection) {
                         HistoryFilterSelection.All -> stringResource(Res.string.history_title)
-                        is HistoryFilterSelection.ByTeam -> stringResource(Res.string.history_title_filtered, selection.team.name)
-                        is HistoryFilterSelection.ByTeacher -> stringResource(Res.string.history_title_filtered, selection.teacher.displayName)
+                        else -> historyFilterName?.let { stringResource(Res.string.history_title_filtered, it) }
+                            ?: stringResource(Res.string.history_title) // not resolved yet (rare, brief)
                     }
                 } else {
                     stringResource(currentScreen?.titleRes ?: Res.string.app_name)
@@ -205,7 +218,7 @@ fun AppRoot() {
                         entry<History> { HistoryScreen() }
                         entry<Leaderboard> {
                             LeaderboardScreen(onTeamClick = { team ->
-                                historyFilter.set(HistoryFilterSelection.ByTeam(team))
+                                historyFilter.set(HistoryFilterSelection.ByTeam(team.id))
                                 backStack.add(History)
                             })
                         }
