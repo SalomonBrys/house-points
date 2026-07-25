@@ -25,9 +25,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,6 +107,14 @@ fun AppRoot() {
     BrowserNavigationSync(backStack)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    // True for the whole span the drawer isn't fully closed (covers the open/close
+    // animations too), so PointsAmountField's web actual keeps its overlaid DOM
+    // <input> hidden until the drawer's scrim has fully faded.
+    val drawerOpen by remember {
+        derivedStateOf {
+            drawerState.currentValue == DrawerValue.Open || drawerState.targetValue == DrawerValue.Open
+        }
+    }
 
     // One-shot: restores a returning user's session from persisted tokens, if
     // any (see AuthRepository.restoreSession). The LaunchedEffect(authState)
@@ -142,87 +153,89 @@ fun AppRoot() {
 
     val currentScreen = backStack.lastOrNull() as? Screen
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = false,
-        drawerContent = {
-            AppDrawerContent(
-                authState = authState,
-                currentScreen = currentScreen,
-                onNavigate = { screen ->
-                    scope.launch { drawerState.close() }
-                    backStack.clear()
-                    backStack.add(screen)
-                },
-                onLogout = {
-                    scope.launch {
-                        drawerState.close()
-                        auth.logout()
-                    }
-                },
-            )
-        },
-    ) {
-        Scaffold(
-            topBar = {
-                val title = if (currentScreen is History) {
-                    when (currentScreen.filter) {
-                        HistoryFilterSelection.All -> stringResource(Res.string.history_title)
-                        else -> historyFilterName?.let { stringResource(Res.string.history_title_filtered, it) }
-                            ?: stringResource(Res.string.history_title) // not resolved yet (rare, brief)
-                    }
-                } else {
-                    stringResource(currentScreen?.titleRes ?: Res.string.app_name)
-                }
-                AppTopBar(
-                    title = title,
-                    canPop = backStack.size > 1,
-                    onBack = { backStack.removeLastOrNull() },
-                    onOpenDrawer = { scope.launch { drawerState.open() } },
-                    actions = {
-                        if (currentScreen is Leaderboard) LeaderboardTopBarActions()
-                        if (currentScreen is History) {
-                            HistoryTopBarActions(
-                                selection = currentScreen.filter,
-                                onSelect = { selection -> backStack[backStack.lastIndex] = History(selection) },
-                            )
+    CompositionLocalProvider(LocalDrawerOpen provides drawerOpen) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = false,
+            drawerContent = {
+                AppDrawerContent(
+                    authState = authState,
+                    currentScreen = currentScreen,
+                    onNavigate = { screen ->
+                        scope.launch { drawerState.close() }
+                        backStack.clear()
+                        backStack.add(screen)
+                    },
+                    onLogout = {
+                        scope.launch {
+                            drawerState.close()
+                            auth.logout()
                         }
                     },
                 )
             },
-        ) { padding ->
-            Box(
-                modifier = Modifier.padding(padding).fillMaxSize(),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                // Classement wants the full window width (e.g. to fit more
-                // grid columns); every other screen keeps the readable-width cap.
-                val contentWidthModifier = if (currentScreen is Leaderboard) {
-                    Modifier.fillMaxWidth()
-                } else {
-                    Modifier.widthIn(max = 840.dp)
-                }
-                NavDisplay(
-                    backStack = backStack,
-                    modifier = contentWidthModifier.fillMaxSize(),
-                    onBack = { backStack.removeLastOrNull() },
-                    entryDecorators = listOf(
-                        rememberSaveableStateHolderNavEntryDecorator(),
-                        rememberViewModelStoreNavEntryDecorator(),
-                    ),
-                    entryProvider = entryProvider {
-                        entry<Login> { LoginScreen() }
-                        entry<History> { key -> HistoryScreen(key.filter) }
-                        entry<Leaderboard> {
-                            LeaderboardScreen(onTeamClick = { team ->
-                                backStack.add(History(HistoryFilterSelection.ByTeam(team.id)))
-                            })
+        ) {
+            Scaffold(
+                topBar = {
+                    val title = if (currentScreen is History) {
+                        when (currentScreen.filter) {
+                            HistoryFilterSelection.All -> stringResource(Res.string.history_title)
+                            else -> historyFilterName?.let { stringResource(Res.string.history_title_filtered, it) }
+                                ?: stringResource(Res.string.history_title) // not resolved yet (rare, brief)
                         }
-                        entry<TeacherHome> { TeacherScreen() }
-                        entry<AdminHome> { AdminScreen() }
-                        entry<Profile> { ProfileScreen() }
-                    },
-                )
+                    } else {
+                        stringResource(currentScreen?.titleRes ?: Res.string.app_name)
+                    }
+                    AppTopBar(
+                        title = title,
+                        canPop = backStack.size > 1,
+                        onBack = { backStack.removeLastOrNull() },
+                        onOpenDrawer = { scope.launch { drawerState.open() } },
+                        actions = {
+                            if (currentScreen is Leaderboard) LeaderboardTopBarActions()
+                            if (currentScreen is History) {
+                                HistoryTopBarActions(
+                                    selection = currentScreen.filter,
+                                    onSelect = { selection -> backStack[backStack.lastIndex] = History(selection) },
+                                )
+                            }
+                        },
+                    )
+                },
+            ) { padding ->
+                Box(
+                    modifier = Modifier.padding(padding).fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    // Classement wants the full window width (e.g. to fit more
+                    // grid columns); every other screen keeps the readable-width cap.
+                    val contentWidthModifier = if (currentScreen is Leaderboard) {
+                        Modifier.fillMaxWidth()
+                    } else {
+                        Modifier.widthIn(max = 840.dp)
+                    }
+                    NavDisplay(
+                        backStack = backStack,
+                        modifier = contentWidthModifier.fillMaxSize(),
+                        onBack = { backStack.removeLastOrNull() },
+                        entryDecorators = listOf(
+                            rememberSaveableStateHolderNavEntryDecorator(),
+                            rememberViewModelStoreNavEntryDecorator(),
+                        ),
+                        entryProvider = entryProvider {
+                            entry<Login> { LoginScreen() }
+                            entry<History> { key -> HistoryScreen(key.filter) }
+                            entry<Leaderboard> {
+                                LeaderboardScreen(onTeamClick = { team ->
+                                    backStack.add(History(HistoryFilterSelection.ByTeam(team.id)))
+                                })
+                            }
+                            entry<TeacherHome> { TeacherScreen() }
+                            entry<AdminHome> { AdminScreen() }
+                            entry<Profile> { ProfileScreen() }
+                        },
+                    )
+                }
             }
         }
     }

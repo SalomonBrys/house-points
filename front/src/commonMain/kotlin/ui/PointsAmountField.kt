@@ -1,7 +1,16 @@
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.TextUnit
+
+/**
+ * Whether the app's nav drawer is currently open. Provided by `AppRoot` and read
+ * only by the web [PointsAmountField] actual, which overlays a real DOM `<input>`
+ * on the Compose canvas — outside Compose's z-order/scrim — and so must hide itself
+ * while the drawer is open (the drawer, drawn in-canvas, cannot cover it).
+ */
+val LocalDrawerOpen = staticCompositionLocalOf { false }
 
 /**
  * Digit-only entry for the teacher's points amount ([SignedAmountInput] in

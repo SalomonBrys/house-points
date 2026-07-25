@@ -42,6 +42,7 @@ actual fun PointsAmountField(
 ) {
     val currentOnAmountChange = rememberUpdatedState(onAmountChange)
     val fieldHeight = with(LocalDensity.current) { fontSize.toDp() }
+    val drawerOpen = LocalDrawerOpen.current
 
     HtmlElementView(
         factory = {
@@ -75,6 +76,10 @@ actual fun PointsAmountField(
             input.style.setProperty("caret-color", displayColor.toCssColor())
             input.style.fontSize = "${fontSize.value}px"
             input.style.setProperty("--points-placeholder-color", placeholderColor.toCssColor())
+            // This overlaid DOM <input> sits above the Compose canvas in the
+            // browser's stacking context, so the in-canvas nav drawer/scrim can
+            // never cover it — hide it explicitly while the drawer is open.
+            input.style.visibility = if (drawerOpen) "hidden" else "visible"
         },
     )
 }
