@@ -12,7 +12,7 @@ use App\Repositories\PointEventRepository;
  * event, via Claude. Synchronous — called inline from
  * PointEventsController::store, so it always returns a usable string (real AI
  * text or a deterministic fallback sentence) rather than ever failing the
- * request or returning null; hp_point_events.comment is NOT NULL.
+ * request or returning null; teampoints_point_events.comment is NOT NULL.
  */
 final class CommentGenerator
 {
@@ -23,7 +23,7 @@ final class CommentGenerator
     // creative phrasing over safer/more predictable comments.
     private const TEMPERATURE = 1.0;
 
-    // hp_point_events.comment is VARCHAR(255); the prompt asks for <=250
+    // teampoints_point_events.comment is VARCHAR(255); the prompt asks for <=250
     // chars, this is just a hard safety net against a runaway response.
     private const MAX_COMMENT_CHARS = 255;
 

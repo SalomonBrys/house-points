@@ -16,7 +16,7 @@ final class RefreshTokenRepository
     public function create(int $userId, string $tokenHash, DateTimeImmutable $expiresAt): void
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO hp_refresh_tokens (user_id, token_hash, expires_at)
+            'INSERT INTO teampoints_refresh_tokens (user_id, token_hash, expires_at)
              VALUES (:user_id, :token_hash, :expires_at)'
         );
         $stmt->execute([
@@ -38,7 +38,7 @@ final class RefreshTokenRepository
     public function consumeActiveByHash(string $tokenHash): ?int
     {
         $update = $this->pdo->prepare(
-            'UPDATE hp_refresh_tokens
+            'UPDATE teampoints_refresh_tokens
              SET revoked_at = NOW()
              WHERE token_hash = :token_hash
                AND revoked_at IS NULL
@@ -50,7 +50,7 @@ final class RefreshTokenRepository
             return null;
         }
 
-        $select = $this->pdo->prepare('SELECT user_id FROM hp_refresh_tokens WHERE token_hash = :token_hash LIMIT 1');
+        $select = $this->pdo->prepare('SELECT user_id FROM teampoints_refresh_tokens WHERE token_hash = :token_hash LIMIT 1');
         $select->execute(['token_hash' => $tokenHash]);
 
         $row = $select->fetch();
@@ -65,7 +65,7 @@ final class RefreshTokenRepository
     public function revokeByHash(string $tokenHash): void
     {
         $stmt = $this->pdo->prepare(
-            'UPDATE hp_refresh_tokens
+            'UPDATE teampoints_refresh_tokens
              SET revoked_at = NOW()
              WHERE token_hash = :token_hash AND revoked_at IS NULL'
         );
@@ -79,7 +79,7 @@ final class RefreshTokenRepository
     public function revokeAllForUser(int $userId): void
     {
         $stmt = $this->pdo->prepare(
-            'UPDATE hp_refresh_tokens
+            'UPDATE teampoints_refresh_tokens
              SET revoked_at = NOW()
              WHERE user_id = :user_id AND revoked_at IS NULL'
         );

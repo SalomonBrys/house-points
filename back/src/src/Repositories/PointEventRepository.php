@@ -15,7 +15,7 @@ final class PointEventRepository
     public function create(int $teamId, int $teacherId, int $points, string $comment): int
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO hp_point_events (team_id, teacher_id, points, comment)
+            'INSERT INTO teampoints_point_events (team_id, teacher_id, points, comment)
              VALUES (:team_id, :teacher_id, :points, :comment)'
         );
         $stmt->execute([
@@ -35,7 +35,7 @@ final class PointEventRepository
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, team_id, teacher_id, points, comment, created_at
-             FROM hp_point_events
+             FROM teampoints_point_events
              WHERE id = :id
              LIMIT 1'
         );
@@ -48,7 +48,7 @@ final class PointEventRepository
 
     public function delete(int $id): void
     {
-        $stmt = $this->pdo->prepare('DELETE FROM hp_point_events WHERE id = :id');
+        $stmt = $this->pdo->prepare('DELETE FROM teampoints_point_events WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
 
@@ -82,7 +82,7 @@ final class PointEventRepository
         // Fetch one extra row to know whether a next page exists.
         $stmt = $this->pdo->prepare(
             "SELECT id, team_id, teacher_id, points, comment, created_at
-             FROM hp_point_events
+             FROM teampoints_point_events
              $where
              ORDER BY id DESC
              LIMIT " . ($pageSize + 1)
@@ -106,7 +106,7 @@ final class PointEventRepository
     public function latestComments(int $limit): array
     {
         $stmt = $this->pdo->query(
-            'SELECT comment FROM hp_point_events ORDER BY id DESC LIMIT ' . (int) $limit
+            'SELECT comment FROM teampoints_point_events ORDER BY id DESC LIMIT ' . (int) $limit
         );
 
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -121,7 +121,7 @@ final class PointEventRepository
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, team_id, teacher_id, points, comment, created_at
-             FROM hp_point_events
+             FROM teampoints_point_events
              WHERE id > :since_id
              ORDER BY id ASC
              LIMIT ' . $pageSize

@@ -17,7 +17,7 @@ final class UsersController
 
     private const VALID_ROLES = ['teacher', 'admin'];
 
-    // Match hp_users column limits.
+    // Match teampoints_users column limits.
     private const USERNAME_MAX = 190;
     private const DISPLAY_NAME_MAX = 190;
 

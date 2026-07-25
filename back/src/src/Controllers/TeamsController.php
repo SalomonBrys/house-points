@@ -15,7 +15,7 @@ final class TeamsController
     use JsonResponder;
     use ValidatesInput;
 
-    // Matches hp_teams.name VARCHAR(100).
+    // Matches teampoints_teams.name VARCHAR(100).
     private const NAME_MAX = 100;
 
     public function __construct(private readonly TeamRepository $teams)

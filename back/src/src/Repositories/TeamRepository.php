@@ -19,8 +19,8 @@ final class TeamRepository
     {
         $stmt = $this->pdo->query(
             'SELECT t.id, t.name, COALESCE(SUM(p.points), 0) AS total_points
-             FROM hp_teams t
-             LEFT JOIN hp_point_events p ON p.team_id = t.id
+             FROM teampoints_teams t
+             LEFT JOIN teampoints_point_events p ON p.team_id = t.id
              WHERE t.active = 1
              GROUP BY t.id, t.name
              ORDER BY total_points DESC'
@@ -40,7 +40,7 @@ final class TeamRepository
      */
     public function findActive(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, name FROM hp_teams WHERE id = :id AND active = 1 LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, name FROM teampoints_teams WHERE id = :id AND active = 1 LIMIT 1');
         $stmt->execute(['id' => $id]);
 
         $team = $stmt->fetch();
@@ -50,7 +50,7 @@ final class TeamRepository
 
     public function existsById(int $id): bool
     {
-        $stmt = $this->pdo->prepare('SELECT 1 FROM hp_teams WHERE id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT 1 FROM teampoints_teams WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $id]);
 
         return $stmt->fetch() !== false;
@@ -58,7 +58,7 @@ final class TeamRepository
 
     public function create(string $name): int
     {
-        $stmt = $this->pdo->prepare('INSERT INTO hp_teams (name, active) VALUES (:name, 1)');
+        $stmt = $this->pdo->prepare('INSERT INTO teampoints_teams (name, active) VALUES (:name, 1)');
         $stmt->execute(['name' => $name]);
 
         return (int) $this->pdo->lastInsertId();
@@ -66,7 +66,7 @@ final class TeamRepository
 
     public function deactivate(int $id): void
     {
-        $stmt = $this->pdo->prepare('UPDATE hp_teams SET active = 0 WHERE id = :id');
+        $stmt = $this->pdo->prepare('UPDATE teampoints_teams SET active = 0 WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
 }

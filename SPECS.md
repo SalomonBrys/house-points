@@ -19,7 +19,7 @@ The system has two parts:
 
 ## 2. Roles & Accounts
 
-There are exactly two roles, stored on a single `hp_users` table via a `role`
+There are exactly two roles, stored on a single `teampoints_users` table via a `role`
 column:
 
 - **teacher** — can award/deduct points to teams, and void their own
@@ -47,7 +47,7 @@ is ever hard-deleted.
 
 ## 3. Domain Model
 
-**hp_users**
+**teampoints_users**
 
 | field | type | notes |
 |---|---|---|
@@ -58,7 +58,7 @@ is ever hard-deleted.
 | display_name | string | shown in event history |
 | active | bool, default true | soft-delete flag |
 
-**hp_teams**
+**teampoints_teams**
 
 | field | type | notes |
 |---|---|---|
@@ -66,7 +66,7 @@ is ever hard-deleted.
 | name | string | |
 | active | bool, default true | soft-delete flag |
 
-**hp_point_events** — the append-mostly ledger; a team's point total is always
+**teampoints_point_events** — the append-mostly ledger; a team's point total is always
 `SUM(points)` over its events.
 
 | field | type | notes |
@@ -81,7 +81,7 @@ is ever hard-deleted.
 Voiding an erroneous transaction (see §5.3) **hard-deletes** the row —
 no trace is kept, and the team total simply no longer includes it.
 
-**hp_refresh_tokens** — backs the 72h refresh flow (see §4).
+**teampoints_refresh_tokens** — backs the 72h refresh flow (see §4).
 
 | field | type | notes |
 |---|---|---|
@@ -98,7 +98,7 @@ no trace is kept, and the team total simply no longer includes it.
   `.env`). Claims: `sub` (user id), `role`, `username`, `iat`, `exp`.
 - **Refresh token**: opaque random string, **72 hour TTL** (fixed in code, not
   env-configurable), stored server-side
-  (hashed) in `hp_refresh_tokens` so it can be revoked. On every refresh, the old
+  (hashed) in `teampoints_refresh_tokens` so it can be revoked. On every refresh, the old
   token is revoked and a new one issued (rotation) — this is the standard way
   to make a long-lived, DB-backed refresh token safer against replay if it
   ever leaks.

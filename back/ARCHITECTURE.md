@@ -141,10 +141,10 @@ and no system-level MySQL service is left behind on the host. This mirrors
 how the database would likely run in CI/production without requiring the
 same for the PHP process itself.
 
-## 9. Database table naming: `hp_` prefix
+## 9. Database table naming: `teampoints_` prefix
 
-All tables will be prefixed (`hp_users`, `hp_teams`, `hp_point_events`,
-`hp_refresh_tokens`) rather than left bare (`users`, `teams`, ...).
+All tables will be prefixed (`teampoints_users`, `teampoints_teams`, `teampoints_point_events`,
+`teampoints_refresh_tokens`) rather than left bare (`users`, `teams`, ...).
 
 **Rationale:** namespacing convention to avoid collisions with generic table
 names (`users`, `teams`) if this schema ever shares a MySQL instance/schema
@@ -156,7 +156,7 @@ with other applications.
   `iat`, `exp` — short-lived and stateless, verified without a DB round-trip
   on every protected request.
 - **Refresh token:** opaque random string, 72 hour TTL, stored **hashed** in
-  `hp_refresh_tokens` (never plaintext), rotated on every use (old token
+  `teampoints_refresh_tokens` (never plaintext), rotated on every use (old token
   revoked, new one issued).
 
 **Rationale:** a stateless JWT refresh token can't be revoked before its

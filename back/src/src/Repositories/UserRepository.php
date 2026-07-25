@@ -19,7 +19,7 @@ final class UserRepository
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, username, password_hash, role, display_name
-             FROM hp_users
+             FROM teampoints_users
              WHERE username = :username AND active = 1
              LIMIT 1'
         );
@@ -37,7 +37,7 @@ final class UserRepository
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, username, password_hash, role, display_name
-             FROM hp_users
+             FROM teampoints_users
              WHERE id = :id AND active = 1
              LIMIT 1'
         );
@@ -55,7 +55,7 @@ final class UserRepository
     {
         $stmt = $this->pdo->query(
             "SELECT id, username, display_name
-             FROM hp_users
+             FROM teampoints_users
              WHERE active = 1
              ORDER BY display_name"
         );
@@ -69,7 +69,7 @@ final class UserRepository
 
     public function usernameExists(string $username): bool
     {
-        $stmt = $this->pdo->prepare('SELECT 1 FROM hp_users WHERE username = :username LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT 1 FROM teampoints_users WHERE username = :username LIMIT 1');
         $stmt->execute(['username' => $username]);
 
         return $stmt->fetch() !== false;
@@ -77,7 +77,7 @@ final class UserRepository
 
     public function existsById(int $id): bool
     {
-        $stmt = $this->pdo->prepare('SELECT 1 FROM hp_users WHERE id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT 1 FROM teampoints_users WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $id]);
 
         return $stmt->fetch() !== false;
@@ -86,7 +86,7 @@ final class UserRepository
     public function create(string $username, string $passwordHash, string $role, string $displayName): int
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO hp_users (username, password_hash, role, display_name, active)
+            'INSERT INTO teampoints_users (username, password_hash, role, display_name, active)
              VALUES (:username, :password_hash, :role, :display_name, 1)'
         );
         $stmt->execute([
@@ -101,19 +101,19 @@ final class UserRepository
 
     public function deactivate(int $id): void
     {
-        $stmt = $this->pdo->prepare('UPDATE hp_users SET active = 0 WHERE id = :id');
+        $stmt = $this->pdo->prepare('UPDATE teampoints_users SET active = 0 WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
 
     public function updatePassword(int $id, string $passwordHash): void
     {
-        $stmt = $this->pdo->prepare('UPDATE hp_users SET password_hash = :password_hash WHERE id = :id');
+        $stmt = $this->pdo->prepare('UPDATE teampoints_users SET password_hash = :password_hash WHERE id = :id');
         $stmt->execute(['password_hash' => $passwordHash, 'id' => $id]);
     }
 
     public function updateDisplayName(int $id, string $displayName): void
     {
-        $stmt = $this->pdo->prepare('UPDATE hp_users SET display_name = :display_name WHERE id = :id');
+        $stmt = $this->pdo->prepare('UPDATE teampoints_users SET display_name = :display_name WHERE id = :id');
         $stmt->execute(['display_name' => $displayName, 'id' => $id]);
     }
 }
