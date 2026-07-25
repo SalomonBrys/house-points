@@ -3,7 +3,7 @@
     "description": "Team Points API",
     "type": "project",
     "require": {
-        "php": "^8.2",
+        "php": "^8.1",
         "slim/slim": "^4.13",
         "slim/psr7": "^1.7",
         "firebase/php-jwt": "^7.1",
