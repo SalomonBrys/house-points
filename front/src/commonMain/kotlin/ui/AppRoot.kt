@@ -79,7 +79,7 @@ private val navConfig = SavedStateConfiguration { serializersModule = navSeriali
  * the app, like a normal website. No-op on desktop (no browser to sync with).
  */
 @Composable
-expect fun BrowserNavigationSync(backStack: NavBackStack<NavKey>, historyFilter: HistoryFilter)
+expect fun BrowserNavigationSync(backStack: NavBackStack<NavKey>)
 
 /**
  * Top-level app shell: one shared drawer + top bar wrapping the Navigation3
@@ -98,25 +98,12 @@ fun AppRoot() {
     val auth = di.direct.instance<AuthRepository>()
     val authState by session.state.collectAsState()
     val historyFilter = di.direct.instance<HistoryFilter>()
-    val historyFilterSelection by historyFilter.selection.collectAsState()
     val historyFilterName by historyFilter.selectionName.collectAsState()
 
     val backStack = rememberNavBackStack(navConfig, Leaderboard)
-    BrowserNavigationSync(backStack, historyFilter)
+    BrowserNavigationSync(backStack)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
-    // Picking a filter while already on Historique doesn't touch backStack,
-    // so the browser-URL sync (which only reacts to backStack changes, via
-    // ChronologicalBrowserNavigation's snapshotFlow) would never notice.
-    // Force a re-check by reassigning the same Screen at the same index —
-    // a same-value write, not a size change, so it shouldn't disturb
-    // HistoryScreen's nav-entry-scoped state.
-    LaunchedEffect(historyFilterSelection) {
-        if (backStack.lastOrNull() is History) {
-            backStack[backStack.lastIndex] = History
-        }
-    }
 
     // One-shot: restores a returning user's session from persisted tokens, if
     // any (see AuthRepository.restoreSession). The LaunchedEffect(authState)
@@ -178,7 +165,7 @@ fun AppRoot() {
         Scaffold(
             topBar = {
                 val title = if (currentScreen is History) {
-                    when (historyFilterSelection) {
+                    when (currentScreen.filter) {
                         HistoryFilterSelection.All -> stringResource(Res.string.history_title)
                         else -> historyFilterName?.let { stringResource(Res.string.history_title_filtered, it) }
                             ?: stringResource(Res.string.history_title) // not resolved yet (rare, brief)
@@ -193,7 +180,12 @@ fun AppRoot() {
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                     actions = {
                         if (currentScreen is Leaderboard) LeaderboardTopBarActions()
-                        if (currentScreen is History) HistoryTopBarActions()
+                        if (currentScreen is History) {
+                            HistoryTopBarActions(
+                                selection = currentScreen.filter,
+                                onSelect = { selection -> backStack[backStack.lastIndex] = History(selection) },
+                            )
+                        }
                     },
                 )
             },
@@ -219,11 +211,10 @@ fun AppRoot() {
                     ),
                     entryProvider = entryProvider {
                         entry<Login> { LoginScreen() }
-                        entry<History> { HistoryScreen() }
+                        entry<History> { key -> HistoryScreen(key.filter) }
                         entry<Leaderboard> {
                             LeaderboardScreen(onTeamClick = { team ->
-                                historyFilter.set(HistoryFilterSelection.ByTeam(team.id))
-                                backStack.add(History)
+                                backStack.add(History(HistoryFilterSelection.ByTeam(team.id)))
                             })
                         }
                         entry<TeacherHome> { TeacherScreen() }
@@ -284,8 +275,8 @@ private fun AppDrawerContent(
         NavigationDrawerItem(
             label = { Text(stringResource(Res.string.history_title)) },
             icon = { Icon(Icons.Filled.History, contentDescription = null) },
-            selected = currentScreen == History,
-            onClick = { onNavigate(History) },
+            selected = currentScreen is History,
+            onClick = { onNavigate(History()) },
         )
         when (authState) {
             AuthState.LoggedOut -> {

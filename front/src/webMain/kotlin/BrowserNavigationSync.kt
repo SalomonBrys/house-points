@@ -6,7 +6,7 @@ import com.github.terrakok.navigation3.browser.buildBrowserHistoryFragment
 import com.github.terrakok.navigation3.browser.getBrowserHistoryFragmentName
 import com.github.terrakok.navigation3.browser.getBrowserHistoryFragmentParameters
 
-actual @Composable fun BrowserNavigationSync(backStack: NavBackStack<NavKey>, historyFilter: HistoryFilter) {
+actual @Composable fun BrowserNavigationSync(backStack: NavBackStack<NavKey>) {
     ChronologicalBrowserNavigation(
         backStack = backStack,
         saveKey = { key ->
@@ -14,7 +14,7 @@ actual @Composable fun BrowserNavigationSync(backStack: NavBackStack<NavKey>, hi
                 // Only the Historique screen carries extra state (its team/teacher
                 // filter) worth reflecting in the URL's query part.
                 val params = if (screen is History) {
-                    when (val selection = historyFilter.selection.value) {
+                    when (val selection = screen.filter) {
                         HistoryFilterSelection.All -> emptyMap()
                         is HistoryFilterSelection.ByTeam -> mapOf("team_id" to selection.teamId.toString())
                         is HistoryFilterSelection.ByTeacher -> mapOf("teacher_id" to selection.teacherId.toString())
@@ -37,9 +37,10 @@ actual @Composable fun BrowserNavigationSync(backStack: NavBackStack<NavKey>, hi
                     val selection = params["team_id"]?.toIntOrNull()?.let { HistoryFilterSelection.ByTeam(it) }
                         ?: params["teacher_id"]?.toIntOrNull()?.let { HistoryFilterSelection.ByTeacher(it) }
                         ?: HistoryFilterSelection.All
-                    historyFilter.set(selection)
+                    History(selection)
+                } else {
+                    screen
                 }
-                screen
             }
         },
     )

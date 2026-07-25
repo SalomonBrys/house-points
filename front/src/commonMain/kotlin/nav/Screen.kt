@@ -7,6 +7,7 @@ import team_points.front.generated.resources.profile_title
 import team_points.front.generated.resources.public_display_title
 import team_points.front.generated.resources.teacher_title
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -42,10 +43,29 @@ data object Login : Screen {
     override val pathSegment = "login"
 }
 
+/**
+ * [filter] narrows the event list to a single team/teacher (see
+ * [HistoryFilterSelection]) and round-trips through the browser URL's query
+ * part (`BrowserNavigationSync`) — carrying it on the key itself, rather than
+ * in a side channel, is what makes a filter change register as a genuine
+ * back-stack change for `ChronologicalBrowserNavigation`'s `snapshotFlow` to
+ * pick up and reflect in the address bar. [titleRes]/[pathSegment] are
+ * `@Transient`: unlike the `data object` screens (which serialize to an empty
+ * structure regardless of body properties), a `data class`'s body properties
+ * are otherwise included in serialization too, and `StringResource` isn't
+ * serializable.
+ */
 @Serializable
-data object History : Screen {
+data class History(val filter: HistoryFilterSelection = HistoryFilterSelection.All) : Screen {
+    @Transient
     override val titleRes = Res.string.history_title
-    override val pathSegment = "history"
+
+    @Transient
+    override val pathSegment = PATH
+
+    companion object {
+        const val PATH = "history"
+    }
 }
 
 @Serializable
@@ -75,7 +95,7 @@ data object Profile : Screen {
  */
 fun screenForPath(segment: String): Screen = when (segment) {
     Login.pathSegment -> Login
-    History.pathSegment -> History
+    History.PATH -> History()
     TeacherHome.pathSegment -> TeacherHome
     AdminHome.pathSegment -> AdminHome
     Profile.pathSegment -> Profile

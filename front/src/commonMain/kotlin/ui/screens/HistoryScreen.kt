@@ -58,6 +58,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format.char
 import kotlinx.datetime.isoDayNumber
+import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
@@ -68,29 +69,34 @@ import org.kodein.di.instance
 /**
  * Which single dimension, if any, the history list is currently narrowed to.
  * Holds ids rather than the full [Team]/[Teacher] objects: this selection is
- * also encoded in the browser URL on web (`BrowserNavigationSync`), whose
- * `restoreKey` is synchronous and so can't fetch an object over the network
- * while parsing — only an id round-trips without I/O. The display name (for
- * the top-bar title) is resolved separately; see [HistoryFilter.selectionName].
+ * carried on the [History] nav key itself and encoded in the browser URL on
+ * web (`BrowserNavigationSync`), whose `restoreKey` is synchronous and so
+ * can't fetch an object over the network while parsing — only an id
+ * round-trips without I/O. The display name (for the top-bar title) is
+ * resolved separately; see [HistoryFilter.selectionName].
  */
+@Serializable
 sealed interface HistoryFilterSelection {
+    @Serializable
     data object All : HistoryFilterSelection
+
+    @Serializable
     data class ByTeam(val teamId: Int) : HistoryFilterSelection
+
+    @Serializable
     data class ByTeacher(val teacherId: Int) : HistoryFilterSelection
 }
 
 /**
- * Current team/teacher filter for [HistoryScreen], shared with its top-bar
- * control ([HistoryTopBarActions]) via a DI singleton — the two composables
- * are siblings under [AppRoot] (which also reads this to append the filtered
- * name to the shared top bar's title), not parent/child, so nav-entry scoped
+ * Resolves the display name for [HistoryScreen]'s current team/teacher filter
+ * (carried on the [History] nav key), shared with its top-bar control
+ * ([HistoryTopBarActions]) via a DI singleton — the two composables are
+ * siblings under [AppRoot] (which also reads this to append the filtered name
+ * to the shared top bar's title), not parent/child, so nav-entry scoped
  * `ViewModel` state can't reach both. In-memory only, for the app's lifetime,
  * like [LeaderboardConfig] — no persistence needed.
  */
 class HistoryFilter {
-    private val _selection = MutableStateFlow<HistoryFilterSelection>(HistoryFilterSelection.All)
-    val selection: StateFlow<HistoryFilterSelection> = _selection.asStateFlow()
-
     // Resolved display name for the current selection — null for [HistoryFilterSelection.All],
     // or briefly null right after a URL-restored by-id selection until
     // [HistoryTopBarActions] (which already fetches the active teams/teachers
@@ -98,10 +104,6 @@ class HistoryFilter {
     // of duplicating that fetch.
     private val _selectionName = MutableStateFlow<String?>(null)
     val selectionName: StateFlow<String?> = _selectionName.asStateFlow()
-
-    fun set(selection: HistoryFilterSelection) {
-        _selection.value = selection
-    }
 
     fun setSelectionName(name: String?) {
         _selectionName.value = name
@@ -116,7 +118,7 @@ sealed interface HistoryUiState {
 
 class HistoryViewModel(
     private val events: EventsRepository,
-    private val filter: HistoryFilter,
+    private val selection: HistoryFilterSelection,
 ) : ViewModel() {
     private val _state = MutableStateFlow<HistoryUiState>(HistoryUiState.Loading)
     val state: StateFlow<HistoryUiState> = _state.asStateFlow()
@@ -127,18 +129,13 @@ class HistoryViewModel(
     // Cursor for the next (older) page, per the `next_id`/`before_id` keyset
     // pagination contract of `GET /api/events` — null once there is nothing older left.
     private var nextId: Int? = null
-    private var currentSelection: HistoryFilterSelection = HistoryFilterSelection.All
 
     init {
-        // A StateFlow replays its current value to a new collector, so this
-        // both performs the initial load and reloads from scratch whenever
-        // the shared filter changes.
-        viewModelScope.launch {
-            filter.selection.collect { selection ->
-                currentSelection = selection
-                reloadFromStart()
-            }
-        }
+        // The filter is now part of the nav key (see History.filter), so a
+        // filter change creates a new back-stack entry and thus a fresh
+        // ViewModel instance — a single load here suffices, no need to
+        // observe the filter for later changes.
+        viewModelScope.launch { reloadFromStart() }
     }
 
     private suspend fun reloadFromStart() {
@@ -180,10 +177,10 @@ class HistoryViewModel(
         viewModelScope.launch { reloadFromStart() }
     }
 
-    private suspend fun fetchPage(beforeId: Int?) = when (val selection = currentSelection) {
+    private suspend fun fetchPage(beforeId: Int?) = when (val current = selection) {
         HistoryFilterSelection.All -> events.listPaginated(beforeId = beforeId)
-        is HistoryFilterSelection.ByTeam -> events.listPaginated(beforeId = beforeId, teamId = selection.teamId)
-        is HistoryFilterSelection.ByTeacher -> events.listPaginated(beforeId = beforeId, teacherId = selection.teacherId)
+        is HistoryFilterSelection.ByTeam -> events.listPaginated(beforeId = beforeId, teamId = current.teamId)
+        is HistoryFilterSelection.ByTeacher -> events.listPaginated(beforeId = beforeId, teacherId = current.teacherId)
     }
 }
 
@@ -194,9 +191,9 @@ class HistoryViewModel(
  * (top bar/drawer) lives in [AppRoot], this is content-only.
  */
 @Composable
-fun HistoryScreen() {
+fun HistoryScreen(selection: HistoryFilterSelection) {
     val di = localDI()
-    val viewModel = viewModel { HistoryViewModel(di.direct.instance(), di.direct.instance()) }
+    val viewModel = viewModel { HistoryViewModel(di.direct.instance(), selection) }
     val state by viewModel.state.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
 
@@ -305,14 +302,17 @@ private fun formatEventTimestamp(raw: String): String {
 
 /**
  * Filter control for [HistoryScreen], rendered by [AppRoot] inside the shared
- * top bar (see the class doc on [HistoryFilter]). Fetches the active teams
- * and teachers itself, purely to populate the dropdown's options.
+ * top bar (see the class doc on [HistoryFilter]). [selection] is the current
+ * filter — carried on the [History] nav key, owned by [AppRoot] — and
+ * [onSelect] requests a new one; picking a filter navigates to a new
+ * [History] entry rather than mutating shared state, so the change is
+ * reflected in the browser URL. Fetches the active teams and teachers itself,
+ * purely to populate the dropdown's options.
  */
 @Composable
-fun HistoryTopBarActions() {
+fun HistoryTopBarActions(selection: HistoryFilterSelection, onSelect: (HistoryFilterSelection) -> Unit) {
     val di = localDI()
     val filter = di.direct.instance<HistoryFilter>()
-    val selection by filter.selection.collectAsState()
     val teamsRepository = di.direct.instance<TeamsRepository>()
     val usersRepository = di.direct.instance<UsersRepository>()
 
@@ -352,7 +352,7 @@ fun HistoryTopBarActions() {
                     null
                 },
                 onClick = {
-                    filter.set(HistoryFilterSelection.All)
+                    onSelect(HistoryFilterSelection.All)
                     expanded = false
                 },
             )
@@ -373,7 +373,7 @@ fun HistoryTopBarActions() {
                             null
                         },
                         onClick = {
-                            filter.set(HistoryFilterSelection.ByTeam(team.id))
+                            onSelect(HistoryFilterSelection.ByTeam(team.id))
                             expanded = false
                         },
                     )
@@ -396,7 +396,7 @@ fun HistoryTopBarActions() {
                             null
                         },
                         onClick = {
-                            filter.set(HistoryFilterSelection.ByTeacher(teacher.id))
+                            onSelect(HistoryFilterSelection.ByTeacher(teacher.id))
                             expanded = false
                         },
                     )
