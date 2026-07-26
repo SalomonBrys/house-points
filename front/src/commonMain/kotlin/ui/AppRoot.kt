@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material3.DismissibleNavigationDrawer
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -199,6 +200,7 @@ fun AppRoot() {
                                     onSelect = { selection -> backStack[backStack.lastIndex] = History(selection) },
                                 )
                             }
+                            if (currentScreen is TeacherHome) TeacherTopBarActions()
                         },
                     )
                 },

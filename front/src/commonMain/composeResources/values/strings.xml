@@ -94,8 +94,9 @@
     <string name="action_confirm">Confirmer</string>
     <string name="teacher_confirm_title">Confirmer la transaction ?</string>
     <string name="teacher_points_summary">%1$s : %2$s points</string>
-    <string name="teacher_history_title">Historique de la séance</string>
+    <string name="teacher_history_title">Historique</string>
     <string name="teacher_history_empty">Aucune transaction pour le moment.</string>
+    <string name="teacher_history_unknown_team">Équipe supprimée</string>
 
     <!-- Admin screen -->
     <string name="admin_teams_section">Équipes</string>
