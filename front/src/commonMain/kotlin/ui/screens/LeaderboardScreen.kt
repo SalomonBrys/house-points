@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,9 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -51,8 +47,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -227,7 +228,7 @@ class LeaderboardViewModel(
     // this screen often runs unattended for a long time, so there's no point
     // polling an endpoint nobody's looking at.
     val history = EventsFeed(viewModelScope, eventsRepository) { beforeId ->
-        eventsRepository.listPaginated(beforeId = beforeId)
+        eventsRepository.listPaginated(beforeId = beforeId, pageSize = HISTORY_PAGE_SIZE)
     }
     private var historyEnabled = false
 
@@ -269,6 +270,12 @@ class LeaderboardViewModel(
 
     companion object {
         private val RELOAD_INTERVAL = 1.minutes
+
+        // The history pane has no "Load more" (see LeaderboardHistoryPane) and isn't
+        // scrollable, so this is a hard ceiling on how many rows it can ever show —
+        // sized generously above what even a tall projector pane could fit, and well
+        // under the backend's MAX_PAGE_SIZE (100).
+        private const val HISTORY_PAGE_SIZE = 40
     }
 }
 
@@ -460,8 +467,13 @@ private fun LeaderboardGrid(
 /**
  * Read-only, unfiltered event feed shown in [LeaderboardScreen]'s optional
  * bottom pane (see [LeaderboardConfig.showHistory]) — same row rendering as
- * [HistoryScreen] ([EventRow]), but never a delete button and no "load more":
- * this is a glanceable "what just happened" feed, not a full history browser.
+ * [HistoryScreen] ([EventRow]), but never a delete button and no "load more".
+ * This is a glanceable "what just happened" feed for an unattended, projected
+ * screen, not a browsable list: it deliberately does not scroll. The newest
+ * event is always pinned at the top ([BleedingColumn] stacks top-down and
+ * [EventsFeed] always prepends fresher events there); whatever doesn't fit in
+ * the pane's current height is cut off mid-row by the bottom edge, rather
+ * than leaving blank space — see [BleedingColumn].
  */
 @Composable
 private fun LeaderboardHistoryPane(feed: EventsFeed) {
@@ -486,18 +498,50 @@ private fun LeaderboardHistoryPane(feed: EventsFeed) {
 
             currentEvents.isEmpty() -> Text(stringResource(Res.string.history_empty), modifier = Modifier.align(Alignment.Center))
 
-            else -> {
-                val listState = rememberLazyListState()
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                ) {
-                    items(currentEvents, key = { it.id }) { event ->
-                        EventRow(event, onDelete = null, modifier = Modifier.padding(bottom = 8.dp))
-                    }
-                }
-                EndVerticalScrollbar(rememberScrollbarAdapter(listState))
+            else -> BleedingColumn(
+                Modifier.fillMaxSize().padding(start = 16.dp, top = 16.dp, end = 16.dp),
+                spacing = 8.dp,
+            ) {
+                currentEvents.forEach { event -> EventRow(event, onDelete = null) }
+            }
+        }
+    }
+}
+
+/**
+ * Stacks [content] top-down like a `Column`, but — unlike a scrollable
+ * `LazyColumn` — never ends in blank space: it places children in order for
+ * as long as the next child's *top* still lands inside the available height,
+ * which means the last child placed is typically only partially visible —
+ * its bottom half is cut off by [clipToBounds] rather than leaving a gap
+ * between the last whole row and the pane's edge. On a projected, unattended
+ * screen (see [LeaderboardHistoryPane]) a half-visible row reads as "the feed
+ * continues" and looks intentional, whereas a blank band reads as broken.
+ * Used so a resize of [VerticalSplitPane] always leaves the pane looking
+ * full. Always fills the given [Constraints] itself so the pane keeps
+ * occupying its full share of the split.
+ */
+@Composable
+private fun BleedingColumn(modifier: Modifier = Modifier, spacing: Dp = 0.dp, content: @Composable () -> Unit) {
+    Layout(content = content, modifier = modifier.clipToBounds()) { measurables, constraints ->
+        val spacingPx = spacing.roundToPx()
+        val looseConstraints = constraints.copy(minWidth = 0, minHeight = 0, maxHeight = Constraints.Infinity)
+        val placeables = mutableListOf<Placeable>()
+        var nextTop = 0
+        for (measurable in measurables) {
+            if (constraints.hasBoundedHeight && nextTop >= constraints.maxHeight) break
+            val placeable = measurable.measure(looseConstraints)
+            placeables += placeable
+            nextTop += placeable.height + spacingPx
+        }
+
+        val width = (placeables.maxOfOrNull { it.width } ?: 0).coerceIn(constraints.minWidth, constraints.maxWidth)
+        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else (nextTop - spacingPx).coerceAtLeast(0)
+        layout(width, height) {
+            var y = 0
+            for (placeable in placeables) {
+                placeable.placeRelative(0, y)
+                y += placeable.height + spacingPx
             }
         }
     }
