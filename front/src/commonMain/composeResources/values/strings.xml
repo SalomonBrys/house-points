@@ -41,6 +41,7 @@
     <string name="public_display_columns_increase">Augmenter le nombre d'équipes par ligne</string>
     <string name="public_display_font_decrease">Réduire la taille du texte</string>
     <string name="public_display_font_increase">Augmenter la taille du texte</string>
+    <string name="public_display_crown_toggle">Afficher la couronne du premier</string>
 
     <!-- Role home stubs -->
     <string name="welcome_message">Bienvenue, %1$s.</string>

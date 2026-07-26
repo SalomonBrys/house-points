@@ -1,3 +1,4 @@
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,6 +20,7 @@ import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Diamond
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Sort
@@ -43,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +59,7 @@ import team_points.front.generated.resources.error_load_teams
 import team_points.front.generated.resources.team_points
 import team_points.front.generated.resources.public_display_columns_decrease
 import team_points.front.generated.resources.public_display_columns_increase
+import team_points.front.generated.resources.public_display_crown_toggle
 import team_points.front.generated.resources.public_display_font_decrease
 import team_points.front.generated.resources.public_display_font_increase
 import team_points.front.generated.resources.public_display_refresh_description
@@ -106,6 +110,11 @@ class LeaderboardConfig {
     private val _fontScale = MutableStateFlow(1f)
     val fontScale: StateFlow<Float> = _fontScale.asStateFlow()
 
+    // Off by default: the crown (and the "winner alone on top" centering it
+    // gates — see buildLeaderboardEntries) is an opt-in display flourish.
+    private val _showCrown = MutableStateFlow(false)
+    val showCrown: StateFlow<Boolean> = _showCrown.asStateFlow()
+
     // One-shot event (not state): the top bar's reload button and the screen's
     // data-fetching ViewModel are siblings under AppRoot, so this is how the
     // former asks the latter to refresh. Buffered so a request isn't lost if
@@ -144,6 +153,10 @@ class LeaderboardConfig {
 
     fun decreaseFontScale() {
         _fontScale.update { (it - SCALE_STEP).coerceAtLeast(MIN_SCALE) }
+    }
+
+    fun toggleCrown() {
+        _showCrown.update { !it }
     }
 
     companion object {
@@ -218,6 +231,7 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
     val sortOrder by config.sortOrder.collectAsState()
     val columns by config.columns.collectAsState()
     val fontScale by config.fontScale.collectAsState()
+    val showCrown by config.showCrown.collectAsState()
 
     LaunchedEffect(config, viewModel) {
         config.refreshRequests.collect { viewModel.refresh() }
@@ -253,8 +267,18 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
                         TeamSortOrder.POINTS -> currentTeams.sortedByDescending { it.totalPoints }
                     }
                 }
-                val entries = remember(sortedTeams, columns, sortOrder) { buildLeaderboardEntries(sortedTeams, columns, sortOrder) }
+                val entries = remember(sortedTeams, columns, sortOrder, showCrown) {
+                    buildLeaderboardEntries(sortedTeams, columns, sortOrder, showCrown)
+                }
                 val gridState = rememberLazyGridState()
+                // Toggling the crown on reshuffles row 1 (the new leader/tied
+                // group centers there) — jump back to the top so that's
+                // immediately visible rather than wherever the list happened
+                // to be scrolled to. Toggling off doesn't need this: nothing
+                // is "revealed" by hiding the crown.
+                LaunchedEffect(showCrown) {
+                    if (showCrown) gridState.scrollToItem(0)
+                }
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(columns),
                     state = gridState,
@@ -275,11 +299,31 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
                                     ),
                                 contentAlignment = Alignment.Center,
                             ) {
+                                // animateItem's fadeInSpec only animates an item
+                                // appearing within an already-composed viewport —
+                                // it doesn't fire when the item is simultaneously
+                                // scrolled into view for the first time (as it
+                                // always is here, since showing the crown also
+                                // snaps to the top). Animate explicitly instead,
+                                // driven by this composable's own mount rather
+                                // than by LazyGrid's diffing, so it plays
+                                // unconditionally. Height (not just alpha) is
+                                // animated too — via Modifier.height, a real
+                                // layout size, not a draw-time scale — so the
+                                // row's occupied space grows in step with the
+                                // fade instead of snapping to full height while
+                                // only its content fades in.
+                                val crownProgress = remember { Animatable(0f) }
+                                LaunchedEffect(Unit) { crownProgress.animateTo(1f, tween(1500)) }
                                 val width = TeamCardImageSize * 1.33f * fontScale
+                                val height = width * 0.7454545f
                                 Image(
                                     painter = painterResource(Res.drawable.crown),
                                     contentDescription = null,
-                                    modifier = Modifier.width(width).height(width * 0.7454545f),
+                                    modifier = Modifier
+                                        .width(width)
+                                        .height(height * crownProgress.value)
+                                        .alpha(crownProgress.value),
                                 )
                             }
                             is LeaderboardEntry.TeamEntry -> TeamCard(
@@ -358,22 +402,27 @@ private sealed interface LeaderboardEntry {
 }
 
 /**
- * Lays [sortedTeams] out for the grid so whoever's in first place is always
- * centered alone on row 1 with a [LeaderboardEntry.Crown] fixed above them —
- * *unless* multiple teams are tied for first, in which case there's no
- * single leader to crown: the crown is simply omitted (which, since it keeps
- * the stable key `"crown"`, makes `Modifier.animateItem` fade it away rather
- * than snapping it out — see the class doc on [LeaderboardEntry.Crown]), and
- * every tied team is centered together on row 1 instead — but only if they
- * actually fit within `columns`; if not, no special row-1 treatment happens
- * at all and they simply flow into the grid like any other team.
+ * Lays [sortedTeams] out for the grid. When [showCrown] is off (the
+ * default), this is a no-op layout-wise: every team is just a plain
+ * [LeaderboardEntry.TeamEntry] in order, flowing/wrapping normally with no
+ * special row-1 treatment.
+ *
+ * When [showCrown] is on, whoever's in first place is centered alone on row
+ * 1 with a [LeaderboardEntry.Crown] fixed above them — *unless* multiple
+ * teams are tied for first, in which case there's no single leader to
+ * crown: the crown is simply omitted (which, since it keeps the stable key
+ * `"crown"`, makes `Modifier.animateItem` fade it away rather than snapping
+ * it out — see the class doc on [LeaderboardEntry.Crown]), and every tied
+ * team is centered together on row 1 instead — but only if they actually
+ * fit within `columns`; if not, no special row-1 treatment happens at all
+ * and they simply flow into the grid like any other team.
  *
  * "Tied for first" is the leading run of [sortedTeams] sharing the same
  * value as `sortedTeams.first()` on whichever field the list is currently
  * sorted by (points, descending — the practically relevant case — or name,
  * ascending, a rare edge case since team names aren't unique). Centering
  * uses the same placeholder-cell trick throughout, generalized from a group
- * of 1 (today's single-leader case) to a group of N: `columns - N`
+ * of 1 (the single-leader case) to a group of N: `columns - N`
  * [LeaderboardEntry.Placeholder] cells split evenly left/right when that's
  * even, with one extra on the right when it's odd (no exact center exists
  * then). Whichever teams aren't part of the tied group follow as ordinary
@@ -383,8 +432,10 @@ private fun buildLeaderboardEntries(
     sortedTeams: List<Team>,
     columns: Int,
     sortOrder: TeamSortOrder,
+    showCrown: Boolean,
 ): List<LeaderboardEntry> {
     if (sortedTeams.isEmpty()) return emptyList()
+    if (!showCrown) return sortedTeams.map { LeaderboardEntry.TeamEntry(it) }
 
     val first = sortedTeams.first()
     val tiedForFirst = when (sortOrder) {
@@ -432,6 +483,7 @@ fun LeaderboardTopBarActions() {
     val sortOrder by config.sortOrder.collectAsState()
     val columns by config.columns.collectAsState()
     val fontScale by config.fontScale.collectAsState()
+    val showCrown by config.showCrown.collectAsState()
     val isLoading by config.isLoading.collectAsState()
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var settingsExpanded by remember { mutableStateOf(false) }
@@ -496,6 +548,13 @@ fun LeaderboardTopBarActions() {
                 }
                 IconButton(onClick = config::increaseFontScale) {
                     Icon(Icons.Filled.TextIncrease, contentDescription = stringResource(Res.string.public_display_font_increase))
+                }
+                IconButton(onClick = config::toggleCrown) {
+                    Icon(
+                        Icons.Filled.Diamond,
+                        contentDescription = stringResource(Res.string.public_display_crown_toggle),
+                        modifier = Modifier.alpha(if (showCrown) 1f else 0.38f),
+                    )
                 }
             }
         }
