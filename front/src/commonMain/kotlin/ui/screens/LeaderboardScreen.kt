@@ -253,7 +253,7 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
                         TeamSortOrder.POINTS -> currentTeams.sortedByDescending { it.totalPoints }
                     }
                 }
-                val entries = remember(sortedTeams, columns) { buildLeaderboardEntries(sortedTeams, columns) }
+                val entries = remember(sortedTeams, columns, sortOrder) { buildLeaderboardEntries(sortedTeams, columns, sortOrder) }
                 val gridState = rememberLazyGridState()
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(columns),
@@ -268,7 +268,11 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
                             is LeaderboardEntry.Crown -> Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .animateItem(placementSpec = tween(1500)),
+                                    .animateItem(
+                                        fadeInSpec = tween(1500),
+                                        placementSpec = tween(1500),
+                                        fadeOutSpec = tween(1500),
+                                    ),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 val width = TeamCardImageSize * 1.33f * fontScale
@@ -354,29 +358,66 @@ private sealed interface LeaderboardEntry {
 }
 
 /**
- * Lays [sortedTeams] out for the grid so the first team (rank #1 by the
- * current sort) is always alone on row 1, centered via blank
- * [LeaderboardEntry.Placeholder] cells — `columns - 1` of them split evenly
- * left/right when `columns` is odd, with one extra on the right when
- * `columns` is even (no exact center exists then). A [LeaderboardEntry.Crown]
- * row precedes it, centered with the exact same left/right counts, so the
- * crown always lands in the same column as the first team — for any
- * `columns`, regardless of which team currently holds first place. The rest
- * of the teams follow as ordinary entries and flow/wrap normally starting
- * row 2.
+ * Lays [sortedTeams] out for the grid so whoever's in first place is always
+ * centered alone on row 1 with a [LeaderboardEntry.Crown] fixed above them —
+ * *unless* multiple teams are tied for first, in which case there's no
+ * single leader to crown: the crown is simply omitted (which, since it keeps
+ * the stable key `"crown"`, makes `Modifier.animateItem` fade it away rather
+ * than snapping it out — see the class doc on [LeaderboardEntry.Crown]), and
+ * every tied team is centered together on row 1 instead — but only if they
+ * actually fit within `columns`; if not, no special row-1 treatment happens
+ * at all and they simply flow into the grid like any other team.
+ *
+ * "Tied for first" is the leading run of [sortedTeams] sharing the same
+ * value as `sortedTeams.first()` on whichever field the list is currently
+ * sorted by (points, descending — the practically relevant case — or name,
+ * ascending, a rare edge case since team names aren't unique). Centering
+ * uses the same placeholder-cell trick throughout, generalized from a group
+ * of 1 (today's single-leader case) to a group of N: `columns - N`
+ * [LeaderboardEntry.Placeholder] cells split evenly left/right when that's
+ * even, with one extra on the right when it's odd (no exact center exists
+ * then). Whichever teams aren't part of the tied group follow as ordinary
+ * entries and flow/wrap normally starting row 2.
  */
-private fun buildLeaderboardEntries(sortedTeams: List<Team>, columns: Int): List<LeaderboardEntry> {
+private fun buildLeaderboardEntries(
+    sortedTeams: List<Team>,
+    columns: Int,
+    sortOrder: TeamSortOrder,
+): List<LeaderboardEntry> {
     if (sortedTeams.isEmpty()) return emptyList()
-    val leftCount = (columns - 1) / 2
-    val rightCount = (columns - 1) - leftCount
+
+    val first = sortedTeams.first()
+    val tiedForFirst = when (sortOrder) {
+        TeamSortOrder.POINTS -> sortedTeams.takeWhile { it.totalPoints == first.totalPoints }
+        TeamSortOrder.NAME -> sortedTeams.takeWhile { it.name == first.name }
+    }
+    val remaining = sortedTeams.drop(tiedForFirst.size)
+
     return buildList {
-        repeat(leftCount) { add(LeaderboardEntry.Placeholder("crown-leading-$it")) }
-        add(LeaderboardEntry.Crown)
-        repeat(rightCount) { add(LeaderboardEntry.Placeholder("crown-trailing-$it")) }
-        repeat(leftCount) { add(LeaderboardEntry.Placeholder("placeholder-leading-$it")) }
-        add(LeaderboardEntry.TeamEntry(sortedTeams.first()))
-        repeat(rightCount) { add(LeaderboardEntry.Placeholder("placeholder-trailing-$it")) }
-        for (i in 1 until sortedTeams.size) add(LeaderboardEntry.TeamEntry(sortedTeams[i]))
+        when {
+            // Sole leader: today's crown + single-centered-team behavior.
+            tiedForFirst.size == 1 -> {
+                val leftCount = (columns - 1) / 2
+                val rightCount = (columns - 1) - leftCount
+                repeat(leftCount) { add(LeaderboardEntry.Placeholder("crown-leading-$it")) }
+                add(LeaderboardEntry.Crown)
+                repeat(rightCount) { add(LeaderboardEntry.Placeholder("crown-trailing-$it")) }
+                repeat(leftCount) { add(LeaderboardEntry.Placeholder("placeholder-leading-$it")) }
+                add(LeaderboardEntry.TeamEntry(first))
+                repeat(rightCount) { add(LeaderboardEntry.Placeholder("placeholder-trailing-$it")) }
+            }
+            // Tie that fits on one line: no crown, whole tied group centered together.
+            tiedForFirst.size <= columns -> {
+                val leftCount = (columns - tiedForFirst.size) / 2
+                val rightCount = (columns - tiedForFirst.size) - leftCount
+                repeat(leftCount) { add(LeaderboardEntry.Placeholder("placeholder-leading-$it")) }
+                tiedForFirst.forEach { add(LeaderboardEntry.TeamEntry(it)) }
+                repeat(rightCount) { add(LeaderboardEntry.Placeholder("placeholder-trailing-$it")) }
+            }
+            // Tie doesn't fit on one line: no crown, no special centering — flows normally.
+            else -> tiedForFirst.forEach { add(LeaderboardEntry.TeamEntry(it)) }
+        }
+        remaining.forEach { add(LeaderboardEntry.TeamEntry(it)) }
     }
 }
 
