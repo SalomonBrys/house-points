@@ -122,6 +122,13 @@ class LeaderboardConfig {
     private val _showCrown = MutableStateFlow(false)
     val showCrown: StateFlow<Boolean> = _showCrown.asStateFlow()
 
+    // True once the crown's entrance animation has played for the current
+    // "on" streak. Lives here rather than as local `remember` state in the
+    // Crown composable because this config (a DI singleton) survives
+    // navigating away from Classement and back, while the composable
+    // subtree doesn't — see consumeCrownEntranceAnimation().
+    private var crownAnimationPlayed = false
+
     // Off by default: the history pane is an opt-in extra, and the projector
     // use case usually wants the full window for the grid.
     private val _showHistory = MutableStateFlow(false)
@@ -168,7 +175,24 @@ class LeaderboardConfig {
     }
 
     fun toggleCrown() {
-        _showCrown.update { !it }
+        val turnedOn = !_showCrown.value
+        _showCrown.value = turnedOn
+        // Reset so the next off→on toggle plays the entrance animation again.
+        if (!turnedOn) crownAnimationPlayed = false
+    }
+
+    /**
+     * Whether a [LeaderboardEntry.Crown] mounting right now should play its
+     * entrance animation — true only the first time since the crown was last
+     * turned on via [toggleCrown]. Every other mount (revisiting Classement
+     * after navigating away, a data refresh recomposing the grid, etc. while
+     * the crown stays on) should render already fully revealed instead of
+     * replaying the animation.
+     */
+    fun consumeCrownEntranceAnimation(): Boolean {
+        if (crownAnimationPlayed) return false
+        crownAnimationPlayed = true
+        return true
     }
 
     fun toggleHistory() {
@@ -291,6 +315,7 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
             showCrown = showCrown,
             onRetry = { viewModel.refresh() },
             onTeamClick = onTeamClick,
+            consumeCrownEntranceAnimation = config::consumeCrownEntranceAnimation,
         )
     }
     if (showHistory) {
@@ -314,6 +339,7 @@ private fun LeaderboardGrid(
     showCrown: Boolean,
     onRetry: () -> Unit,
     onTeamClick: (Team) -> Unit,
+    consumeCrownEntranceAnimation: () -> Boolean,
 ) {
     Box(Modifier.fillMaxSize().padding(vertical = 8.dp, horizontal = 16.dp)) {
         val currentTeams = teams
@@ -388,8 +414,21 @@ private fun LeaderboardGrid(
                                 // row's occupied space grows in step with the
                                 // fade instead of snapping to full height while
                                 // only its content fades in.
-                                val crownProgress = remember { Animatable(0f) }
-                                LaunchedEffect(Unit) { crownProgress.animateTo(1f, tween(1500)) }
+                                //
+                                // This composable also remounts (replaying the
+                                // above) every time Classement itself is
+                                // recomposed from scratch — e.g. navigating
+                                // away and back — even though the crown was
+                                // already showing. consumeCrownEntranceAnimation()
+                                // (LeaderboardConfig, a DI singleton that
+                                // survives that navigation) makes sure the
+                                // animation only actually plays the first time
+                                // since the crown was last turned on.
+                                val shouldAnimate = remember { consumeCrownEntranceAnimation() }
+                                val crownProgress = remember { Animatable(if (shouldAnimate) 0f else 1f) }
+                                LaunchedEffect(Unit) {
+                                    if (shouldAnimate) crownProgress.animateTo(1f, tween(1500))
+                                }
                                 val width = TeamCardImageSize * 1.33f * fontScale
                                 val height = width * 0.7454545f
                                 Image(
