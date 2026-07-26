@@ -324,10 +324,12 @@ fun HistoryScreen(selection: HistoryFilterSelection) {
     val filter = di.direct.instance<HistoryFilter>()
 
     // Who's logged in, if anyone — gates the delete button to the caller's
-    // own events (History is a public route, so myId is often null).
+    // own events (History is a public route, so myId is often null), or to
+    // every event if they're an admin, matching PointEventsController::destroy.
     val session = di.direct.instance<Session>()
     val authState by session.state.collectAsState()
     val myId = (authState as? AuthState.LoggedIn)?.userId
+    val isAdmin = (authState as? AuthState.LoggedIn)?.role == "admin"
     var pendingDelete by remember { mutableStateOf<PointEvent?>(null) }
 
     LaunchedEffect(filter, viewModel) {
@@ -376,7 +378,7 @@ fun HistoryScreen(selection: HistoryFilterSelection) {
                     items(currentEvents, key = { it.id }) { event ->
                         EventRow(
                             event,
-                            onDelete = if (myId != null && event.teacherId == myId) {
+                            onDelete = if (myId != null && (event.teacherId == myId || isAdmin)) {
                                 { pendingDelete = event }
                             } else {
                                 null
