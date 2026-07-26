@@ -12,7 +12,12 @@ data class Team(
     val id: Int,
     val name: String,
     @SerialName("total_points") val totalPoints: Int,
+    // Relative path ("uploads/<file>"), or null if none has been uploaded yet.
+    val image: String? = null,
 )
+
+/** Absolute URL for [Team.image], resolved against the API's origin (not its `/api` base). */
+fun Team.imageUrl(): String? = image?.let { "$API_ROOT_URL/$it" }
 
 @Serializable
 data class Teacher(

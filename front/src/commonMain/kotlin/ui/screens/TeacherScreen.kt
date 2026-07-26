@@ -193,6 +193,12 @@ fun TeacherScreen() {
                             onSelect = { selectedTeam = it },
                         )
 
+                        selectedTeam?.let { team ->
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                TeamImage(imageUrl = team.imageUrl(), size = 144.dp)
+                            }
+                        }
+
                         SignedAmountInput(
                             sign = sign,
                             amountText = amountText,

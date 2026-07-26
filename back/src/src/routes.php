@@ -19,6 +19,10 @@ const STATIC_MIME_TYPES = [
     'svg' => 'image/svg+xml',
     'png' => 'image/png',
     'ico' => 'image/x-icon',
+    // Team image uploads (see the /uploads/{file} route below).
+    'jpg' => 'image/jpeg',
+    'jpeg' => 'image/jpeg',
+    'webp' => 'image/webp',
 ];
 
 /**
@@ -58,9 +62,38 @@ return function (App $app, array $deps): void {
     $app->group('/api', function (RouteCollectorProxy $group) use ($deps) {
         $group->post('/teams', [$deps['teams'], 'store']);
         $group->delete('/teams/{id}', [$deps['teams'], 'destroy']);
+        $group->post('/teams/{id}/image', [$deps['teams'], 'uploadImage']);
         $group->post('/teachers', [$deps['users'], 'store']);
         $group->delete('/teachers/{id}', [$deps['users'], 'destroy']);
     })->add($deps['requireAdmin'])->add($deps['jwtAuth']);
+
+    // --- Uploaded team images ---
+    // Public (like the /api/teams listing they're attached to), served from
+    // a dedicated directory outside public/ — a sibling of static/ but never
+    // touched by deploys (see the root build.gradle.kts deployFtp task, which
+    // excludes "uploads/" from its mirror) so uploads survive redeploys.
+    // Registered before the catch-all so it isn't shadowed by it.
+    $app->get('/uploads/{file}', function ($request, $response, array $args) {
+        $uploadsDir = realpath(__DIR__ . '/../uploads');
+        $filePath = $uploadsDir === false ? false : realpath($uploadsDir . '/' . $args['file']);
+
+        // realpath() resolves "..", so this also blocks path traversal
+        // outside uploads/.
+        if (
+            $filePath === false
+            || !str_starts_with($filePath, $uploadsDir . DIRECTORY_SEPARATOR)
+            || !is_file($filePath)
+        ) {
+            throw new HttpNotFoundException($request);
+        }
+
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $contentType = STATIC_MIME_TYPES[$extension] ?? 'application/octet-stream';
+
+        $response->getBody()->write((string) file_get_contents($filePath));
+
+        return $response->withHeader('Content-Type', $contentType);
+    });
 
     // --- Static files (everything else) ---
     // The PHP built-in server always forwards non-file requests to

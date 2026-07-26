@@ -53,7 +53,7 @@ $responseFactory = new ResponseFactory();
 $deps = [
     'auth' => new AuthController($userRepository, $jwtService, $refreshTokenService),
     'me' => new MeController($userRepository, $jwtService, $refreshTokenService),
-    'teams' => new TeamsController($teamRepository),
+    'teams' => new TeamsController($teamRepository, __DIR__ . '/../uploads'),
     'pointEvents' => new PointEventsController(
         $pointEventRepository,
         $teamRepository,

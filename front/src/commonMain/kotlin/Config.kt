@@ -5,7 +5,8 @@
  * and `front/ARCHITECTURE.md`): if that's set, it's used directly; if it's
  * null (`-PApiUrl=by-url`), [apiRootUrl] resolves it at runtime instead.
  */
-val API_BASE_URL: String by lazy { "${BuildConfig.API_URL ?: apiRootUrl()}/api" }
+val API_ROOT_URL: String by lazy { BuildConfig.API_URL ?: apiRootUrl() }
+val API_BASE_URL: String by lazy { "$API_ROOT_URL/api" }
 
 /**
  * Resolves the API root (scheme+host+port, plus the subdirectory this app is

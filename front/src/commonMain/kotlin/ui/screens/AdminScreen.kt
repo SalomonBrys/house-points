@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -27,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +44,7 @@ import team_points.front.generated.resources.action_delete
 import team_points.front.generated.resources.action_retry
 import team_points.front.generated.resources.admin_confirm_delete_team_message
 import team_points.front.generated.resources.admin_confirm_delete_team_title
+import team_points.front.generated.resources.admin_change_team_image_description
 import team_points.front.generated.resources.admin_confirm_delete_teacher_message
 import team_points.front.generated.resources.admin_confirm_delete_teacher_title
 import team_points.front.generated.resources.admin_team_name
@@ -99,6 +102,8 @@ class AdminViewModel(
     fun addTeam(name: String) = runAction { teams.create(name) }
 
     fun removeTeam(id: Int) = runAction { teams.deactivate(id) }
+
+    fun setTeamImage(id: Int, image: PickedImage) = runAction { teams.uploadImage(id, image) }
 
     fun addTeacher(displayName: String, username: String, password: String) = runAction {
         users.create(username, password, "teacher", displayName)
@@ -169,6 +174,7 @@ fun AdminScreen() {
                         teams = current.teams,
                         onAdd = { name -> viewModel.addTeam(name) },
                         onDeleteRequested = { team -> pendingDelete = PendingDelete.TeamDelete(team) },
+                        onImagePicked = { team, image -> viewModel.setTeamImage(team.id, image) },
                     )
                     Spacer(Modifier.height(16.dp))
                     TeachersSection(
@@ -214,6 +220,7 @@ private fun TeamsSection(
     teams: List<Team>,
     onAdd: (name: String) -> Unit,
     onDeleteRequested: (Team) -> Unit,
+    onImagePicked: (Team, PickedImage) -> Unit,
 ) {
     Column {
         Text(stringResource(Res.string.admin_teams_section), style = MaterialTheme.typography.titleMedium)
@@ -222,12 +229,25 @@ private fun TeamsSection(
             Text(stringResource(Res.string.public_no_teams))
         } else {
             Column {
+                val coroutineScope = rememberCoroutineScope()
+                val changeImageDescription = stringResource(Res.string.admin_change_team_image_description)
+
                 teams.forEach { team ->
                     ListItem(
+                        leadingContent = { TeamImage(imageUrl = team.imageUrl(), size = 40.dp) },
                         headlineContent = { Text(team.name) },
                         trailingContent = {
-                            IconButton(onClick = { onDeleteRequested(team) }) {
-                                Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.action_delete))
+                            Row {
+                                IconButton(onClick = {
+                                    coroutineScope.launch {
+                                        pickImageFile()?.let { image -> onImagePicked(team, image) }
+                                    }
+                                }) {
+                                    Icon(Icons.Filled.AddPhotoAlternate, contentDescription = changeImageDescription)
+                                }
+                                IconButton(onClick = { onDeleteRequested(team) }) {
+                                    Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.action_delete))
+                                }
                             }
                         },
                     )

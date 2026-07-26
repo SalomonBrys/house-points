@@ -12,7 +12,9 @@ val syncBackToWebsite by tasks.registering(Sync::class) {
         // .env stays excluded: unlike vendor/ (deterministic from composer.lock), it holds live secrets — the deploy target supplies its own.
         exclude(".env")
         // Exclude dev-only files & directories:
-        exclude("composer.json", "composer.lock", "bin", "database", "docker-compose.yml")
+        // uploads/ is runtime data (like .env) — the deploy target has its own,
+        // and deployFtp's lftp mirror excludes it outright (see below).
+        exclude("composer.json", "composer.lock", "bin", "database", "docker-compose.yml", "uploads")
     }
     into(websiteDir)
 }

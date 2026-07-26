@@ -34,6 +34,7 @@ kotlin {
         val kodein = "7.33.0"
         val ktor = "3.5.1"
         val serialization = "1.11.0"
+        val coil = "3.3.0"
 
         commonMain.dependencies {
             implementation("org.jetbrains.compose.foundation:foundation:$compose")
@@ -65,6 +66,11 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization")
 
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
+
+            // Team images (SPECS.md): AsyncImage + a Ktor-backed fetcher so it
+            // shares the app's existing Ktor 3 network stack.
+            implementation("io.coil-kt.coil3:coil-compose:$coil")
+            implementation("io.coil-kt.coil3:coil-network-ktor3:$coil")
         }
 
         val desktopMain by getting

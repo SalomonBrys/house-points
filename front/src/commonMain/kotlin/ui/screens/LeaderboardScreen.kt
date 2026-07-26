@@ -78,6 +78,9 @@ import kotlin.time.Duration.Companion.minutes
 
 enum class TeamSortOrder { NAME, POINTS }
 
+/** Base size of [TeamCard]'s image, scaled by [LeaderboardConfig.fontScale] like its text. */
+private val TeamCardImageSize = 96.dp
+
 /**
  * User-adjustable display settings for [LeaderboardScreen], shared with its
  * top-bar controls ([LeaderboardTopBarActions]) via a DI singleton — the two
@@ -276,6 +279,11 @@ private fun TeamCard(team: Team, fontScale: Float, onClick: () -> Unit, modifier
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            TeamImage(
+                imageUrl = team.imageUrl(),
+                size = TeamCardImageSize * fontScale,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
             Text(
                 text = team.name,
                 style = MaterialTheme.typography.titleLarge,
