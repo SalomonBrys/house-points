@@ -1,12 +1,16 @@
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -39,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -46,6 +51,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import team_points.front.generated.resources.Res
 import team_points.front.generated.resources.action_retry
+import team_points.front.generated.resources.crown
 import team_points.front.generated.resources.error_load_teams
 import team_points.front.generated.resources.team_points
 import team_points.front.generated.resources.public_display_columns_decrease
@@ -70,6 +76,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.kodein.di.compose.localDI
 import org.kodein.di.direct
@@ -219,7 +226,7 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
         config.setLoading(isLoadingVm)
     }
 
-    Box(Modifier.fillMaxSize().padding(16.dp)) {
+    Box(Modifier.fillMaxSize().padding(vertical = 8.dp, horizontal = 16.dp)) {
         val currentTeams = teams
         val currentError = errorMessage
         when {
@@ -246,6 +253,7 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
                         TeamSortOrder.POINTS -> currentTeams.sortedByDescending { it.totalPoints }
                     }
                 }
+                val entries = remember(sortedTeams, columns) { buildLeaderboardEntries(sortedTeams, columns) }
                 val gridState = rememberLazyGridState()
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(columns),
@@ -254,15 +262,31 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(sortedTeams, key = { it.id }) { team ->
-                        TeamCard(
-                            team = team,
-                            fontScale = fontScale,
-                            onClick = { onTeamClick(team) },
-                            modifier = Modifier.animateItem(
-                                placementSpec = tween(1500)
+                    items(entries, key = { it.key }) { entry ->
+                        when (entry) {
+                            is LeaderboardEntry.Placeholder -> Box(Modifier)
+                            is LeaderboardEntry.Crown -> Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem(placementSpec = tween(1500)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                val width = TeamCardImageSize * 1.33f * fontScale
+                                Image(
+                                    painter = painterResource(Res.drawable.crown),
+                                    contentDescription = null,
+                                    modifier = Modifier.width(width).height(width * 0.7454545f),
+                                )
+                            }
+                            is LeaderboardEntry.TeamEntry -> TeamCard(
+                                team = entry.team,
+                                fontScale = fontScale,
+                                onClick = { onTeamClick(entry.team) },
+                                modifier = Modifier.animateItem(
+                                    placementSpec = tween(1500)
+                                )
                             )
-                        )
+                        }
                     }
                 }
                 EndVerticalScrollbar(rememberScrollbarAdapter(gridState))
@@ -275,7 +299,7 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
 private fun TeamCard(team: Team, fontScale: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
@@ -299,6 +323,60 @@ private fun TeamCard(team: Team, fontScale: Float, onClick: () -> Unit, modifier
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+/**
+ * One entry of [LeaderboardScreen]'s grid: a real team, the crown that
+ * always sits above the first team, or a blank cell used to center either of
+ * those on its own row (see [buildLeaderboardEntries]). `key` feeds
+ * `items(entries, key = { it.key })` — team keys are the (Int) team id, the
+ * crown and placeholder keys are distinct Strings, so all three coexist
+ * safely as `LazyVerticalGrid` item keys.
+ */
+private sealed interface LeaderboardEntry {
+    val key: Any
+
+    /**
+     * A constant key at a list position determined only by [columns] (never
+     * by which team is #1) is what makes the crown never move on a leader
+     * change — see [buildLeaderboardEntries].
+     */
+    data object Crown : LeaderboardEntry {
+        override val key: Any get() = "crown"
+    }
+
+    data class TeamEntry(val team: Team) : LeaderboardEntry {
+        override val key: Any get() = team.id
+    }
+
+    data class Placeholder(override val key: String) : LeaderboardEntry
+}
+
+/**
+ * Lays [sortedTeams] out for the grid so the first team (rank #1 by the
+ * current sort) is always alone on row 1, centered via blank
+ * [LeaderboardEntry.Placeholder] cells — `columns - 1` of them split evenly
+ * left/right when `columns` is odd, with one extra on the right when
+ * `columns` is even (no exact center exists then). A [LeaderboardEntry.Crown]
+ * row precedes it, centered with the exact same left/right counts, so the
+ * crown always lands in the same column as the first team — for any
+ * `columns`, regardless of which team currently holds first place. The rest
+ * of the teams follow as ordinary entries and flow/wrap normally starting
+ * row 2.
+ */
+private fun buildLeaderboardEntries(sortedTeams: List<Team>, columns: Int): List<LeaderboardEntry> {
+    if (sortedTeams.isEmpty()) return emptyList()
+    val leftCount = (columns - 1) / 2
+    val rightCount = (columns - 1) - leftCount
+    return buildList {
+        repeat(leftCount) { add(LeaderboardEntry.Placeholder("crown-leading-$it")) }
+        add(LeaderboardEntry.Crown)
+        repeat(rightCount) { add(LeaderboardEntry.Placeholder("crown-trailing-$it")) }
+        repeat(leftCount) { add(LeaderboardEntry.Placeholder("placeholder-leading-$it")) }
+        add(LeaderboardEntry.TeamEntry(sortedTeams.first()))
+        repeat(rightCount) { add(LeaderboardEntry.Placeholder("placeholder-trailing-$it")) }
+        for (i in 1 until sortedTeams.size) add(LeaderboardEntry.TeamEntry(sortedTeams[i]))
     }
 }
 

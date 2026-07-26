@@ -35,7 +35,7 @@ fun TeamImage(imageUrl: String?, size: Dp, modifier: Modifier = Modifier) {
             AsyncImage(
                 model = imageUrl,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Fit,
                 filterQuality = FilterQuality.High,
                 modifier = Modifier.size(size),
             )
