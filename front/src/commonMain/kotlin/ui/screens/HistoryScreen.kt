@@ -49,8 +49,6 @@ import team_points.front.generated.resources.action_delete
 import team_points.front.generated.resources.action_retry
 import team_points.front.generated.resources.date_day_names
 import team_points.front.generated.resources.date_month_names
-import team_points.front.generated.resources.error_load_events
-import team_points.front.generated.resources.error_void_event
 import team_points.front.generated.resources.history_confirm_delete_message
 import team_points.front.generated.resources.history_confirm_delete_title
 import team_points.front.generated.resources.history_empty
@@ -75,7 +73,6 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format.char
 import kotlinx.datetime.isoDayNumber
 import kotlinx.serialization.Serializable
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.kodein.di.compose.localDI
@@ -154,43 +151,22 @@ class HistoryViewModel(
     private val eventsRepository: EventsRepository,
     private val selection: HistoryFilterSelection,
 ) : ViewModel() {
-    // Null means "never successfully loaded yet" — once populated, a failed
-    // refresh does NOT clear it, so the last good list stays on screen
-    // undisturbed until a new fetch actually succeeds. Newest-first, per the
-    // `GET /api/events` contract.
-    private val _events = MutableStateFlow<List<PointEvent>?>(null)
-    val events: StateFlow<List<PointEvent>?> = _events.asStateFlow()
-
-    private val _canLoadMore = MutableStateFlow(false)
-    val canLoadMore: StateFlow<Boolean> = _canLoadMore.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
-
-    // True while a full refresh (initial load or reload) is in flight — drives
-    // the top bar's spinner, mirrored up into HistoryFilter.isLoading.
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _isLoadingMore = MutableStateFlow(false)
-    val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
-
-    // Surfaces a failed deleteEvent() without touching errorMessage (which
-    // gates the full-screen error state) or the list itself.
-    private val _actionError = MutableStateFlow<String?>(null)
-    val actionError: StateFlow<String?> = _actionError.asStateFlow()
-
-    // Cursor for the next (older) page, per the `next_id`/`before_id` keyset
-    // pagination contract of `GET /api/events` — null once there is nothing older left.
-    // Only touched by the initial load and loadMore(); refresh()'s merge pass
-    // never moves this, so already-loaded pages stay put.
-    private var nextId: Int? = null
+    // Paging/merge logic lives in EventsFeed (shared with LeaderboardViewModel's
+    // history pane); this ViewModel just supplies the filter and the
+    // reload-loop/nav lifecycle.
+    val feed = EventsFeed(viewModelScope, eventsRepository) { beforeId ->
+        when (val current = selection) {
+            HistoryFilterSelection.All -> eventsRepository.listPaginated(beforeId = beforeId)
+            is HistoryFilterSelection.ByTeam -> eventsRepository.listPaginated(beforeId = beforeId, teamId = current.teamId)
+            is HistoryFilterSelection.ByTeacher -> eventsRepository.listPaginated(beforeId = beforeId, teacherId = current.teacherId)
+        }
+    }
 
     init {
         // The filter is now part of the nav key (see History.filter), so a
         // filter change creates a new back-stack entry and thus a fresh
         // ViewModel instance — no need to observe the filter for later changes.
-        refresh()
+        feed.refresh()
         // History is meant to be left open for a while (like Classement), so
         // it keeps itself fresh on its own. viewModelScope is cancelled when
         // the nav entry is destroyed, which stops this loop — no manual
@@ -198,106 +174,13 @@ class HistoryViewModel(
         viewModelScope.launch {
             while (isActive) {
                 delay(RELOAD_INTERVAL)
-                refresh()
-            }
-        }
-    }
-
-    /**
-     * Initial load, or reload: if nothing has ever loaded successfully yet,
-     * fetches the first page as-is. Otherwise merges newer-than-what's-shown
-     * events onto the top of the existing list, walking forward page by page
-     * to bridge a burst larger than one page — the already-loaded "Load more"
-     * pages and the bottom cursor ([nextId]) are left untouched, so scroll
-     * position and pagination state survive a reload.
-     */
-    fun refresh() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val existing = _events.value
-                if (existing == null) {
-                    val page = fetchPage(beforeId = null)
-                    nextId = page.nextId
-                    _events.value = page.events
-                    _canLoadMore.value = page.nextId != null
-                } else {
-                    _events.value = mergeNewest(existing)
-                }
-                _errorMessage.value = null
-            } catch (e: Exception) {
-                _errorMessage.value = e.message ?: getString(Res.string.error_load_events)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    private suspend fun mergeNewest(existing: List<PointEvent>): List<PointEvent> {
-        val currentTopId = existing.firstOrNull()?.id ?: return existing
-        val newEvents = mutableListOf<PointEvent>()
-        var cursor: Int? = null
-        while (true) {
-            val page = fetchPage(beforeId = cursor)
-            val freshInPage = page.events.filter { it.id > currentTopId }
-            newEvents += freshInPage
-            // Stop once this page ran into events we already had, or there's
-            // nothing further to fetch.
-            if (freshInPage.size < page.events.size || page.nextId == null) break
-            cursor = page.nextId
-        }
-        return if (newEvents.isEmpty()) existing else newEvents + existing
-    }
-
-    fun loadMore() {
-        val current = _events.value ?: return
-        val cursor = nextId ?: return
-        if (_isLoadingMore.value) return
-        viewModelScope.launch {
-            _isLoadingMore.value = true
-            try {
-                val page = fetchPage(beforeId = cursor)
-                nextId = page.nextId
-                _events.value = current + page.events
-                _canLoadMore.value = page.nextId != null
-                _errorMessage.value = null
-            } catch (e: Exception) {
-                // Keep the already-loaded events on screen; only surface the
-                // error, rather than replacing a populated list with Error.
-                _errorMessage.value = e.message ?: getString(Res.string.error_load_events)
-            } finally {
-                _isLoadingMore.value = false
+                feed.refresh()
             }
         }
     }
 
     fun retry() {
-        refresh()
-    }
-
-    /**
-     * Deletes an event the caller owns (or is admin for) — `DELETE
-     * /api/events/{id}`, enforced server-side (`PointEventsController::destroy`:
-     * 403 if neither owner nor admin). The row is removed locally on success
-     * rather than triggering a full reload, so scroll position and the
-     * "Load more" cursor are undisturbed.
-     */
-    fun deleteEvent(eventId: Int) {
-        viewModelScope.launch {
-            _actionError.value = null
-            try {
-                eventsRepository.deleteEvent(eventId)
-                _events.value = _events.value?.filterNot { it.id == eventId }
-            } catch (e: Exception) {
-                _actionError.value = e.message ?: getString(Res.string.error_void_event)
-            }
-        }
-    }
-
-    private suspend fun fetchPage(beforeId: Int?) = when (val current = selection) {
-        HistoryFilterSelection.All -> eventsRepository.listPaginated(beforeId = beforeId)
-        is HistoryFilterSelection.ByTeam -> eventsRepository.listPaginated(beforeId = beforeId, teamId = current.teamId)
-        is HistoryFilterSelection.ByTeacher -> eventsRepository.listPaginated(beforeId = beforeId, teacherId = current.teacherId)
+        feed.refresh()
     }
 
     companion object {
@@ -315,12 +198,12 @@ class HistoryViewModel(
 fun HistoryScreen(selection: HistoryFilterSelection) {
     val di = localDI()
     val viewModel = viewModel { HistoryViewModel(di.direct.instance(), selection) }
-    val events by viewModel.events.collectAsState()
-    val canLoadMore by viewModel.canLoadMore.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val isLoadingMore by viewModel.isLoadingMore.collectAsState()
-    val actionError by viewModel.actionError.collectAsState()
+    val events by viewModel.feed.events.collectAsState()
+    val canLoadMore by viewModel.feed.canLoadMore.collectAsState()
+    val errorMessage by viewModel.feed.errorMessage.collectAsState()
+    val isLoading by viewModel.feed.isLoading.collectAsState()
+    val isLoadingMore by viewModel.feed.isLoadingMore.collectAsState()
+    val actionError by viewModel.feed.actionError.collectAsState()
     val filter = di.direct.instance<HistoryFilter>()
 
     // Who's logged in, if anyone — gates the delete button to the caller's
@@ -333,7 +216,7 @@ fun HistoryScreen(selection: HistoryFilterSelection) {
     var pendingDelete by remember { mutableStateOf<PointEvent?>(null) }
 
     LaunchedEffect(filter, viewModel) {
-        filter.refreshRequests.collect { viewModel.refresh() }
+        filter.refreshRequests.collect { viewModel.feed.refresh() }
     }
     LaunchedEffect(filter, isLoading) {
         filter.setLoading(isLoading)
@@ -392,7 +275,7 @@ fun HistoryScreen(selection: HistoryFilterSelection) {
                                 if (isLoadingMore) {
                                     CircularProgressIndicator(Modifier.padding(16.dp))
                                 } else {
-                                    Button(onClick = { viewModel.loadMore() }) {
+                                    Button(onClick = { viewModel.feed.loadMore() }) {
                                         Text(stringResource(Res.string.history_load_more))
                                     }
                                 }
@@ -412,7 +295,7 @@ fun HistoryScreen(selection: HistoryFilterSelection) {
             text = { Text(stringResource(Res.string.history_confirm_delete_message)) },
             confirmButton = {
                 Button(onClick = {
-                    viewModel.deleteEvent(event.id)
+                    viewModel.feed.deleteEvent(event.id)
                     pendingDelete = null
                 }) { Text(stringResource(Res.string.action_delete)) }
             },
@@ -423,8 +306,9 @@ fun HistoryScreen(selection: HistoryFilterSelection) {
     }
 }
 
+/** Also reused, read-only (`onDelete = null`), by [LeaderboardScreen]'s history pane. */
 @Composable
-private fun EventRow(event: PointEvent, onDelete: (() -> Unit)?, modifier: Modifier = Modifier) {
+fun EventRow(event: PointEvent, onDelete: (() -> Unit)?, modifier: Modifier = Modifier) {
     val isDark = isSystemInDarkTheme()
     val containerColor = when {
         event.points > 0 && isDark -> Color(0xFF23361F)

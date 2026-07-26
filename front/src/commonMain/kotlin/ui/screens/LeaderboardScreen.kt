@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -21,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Diamond
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Sort
@@ -56,12 +61,14 @@ import team_points.front.generated.resources.Res
 import team_points.front.generated.resources.action_retry
 import team_points.front.generated.resources.crown
 import team_points.front.generated.resources.error_load_teams
+import team_points.front.generated.resources.history_empty
 import team_points.front.generated.resources.team_points
 import team_points.front.generated.resources.public_display_columns_decrease
 import team_points.front.generated.resources.public_display_columns_increase
 import team_points.front.generated.resources.public_display_crown_toggle
 import team_points.front.generated.resources.public_display_font_decrease
 import team_points.front.generated.resources.public_display_font_increase
+import team_points.front.generated.resources.public_display_history_toggle
 import team_points.front.generated.resources.public_display_refresh_description
 import team_points.front.generated.resources.public_display_settings_show
 import team_points.front.generated.resources.public_display_sort_by_name
@@ -115,6 +122,11 @@ class LeaderboardConfig {
     private val _showCrown = MutableStateFlow(false)
     val showCrown: StateFlow<Boolean> = _showCrown.asStateFlow()
 
+    // Off by default: the history pane is an opt-in extra, and the projector
+    // use case usually wants the full window for the grid.
+    private val _showHistory = MutableStateFlow(false)
+    val showHistory: StateFlow<Boolean> = _showHistory.asStateFlow()
+
     // One-shot event (not state): the top bar's reload button and the screen's
     // data-fetching ViewModel are siblings under AppRoot, so this is how the
     // former asks the latter to refresh. Buffered so a request isn't lost if
@@ -159,6 +171,10 @@ class LeaderboardConfig {
         _showCrown.update { !it }
     }
 
+    fun toggleHistory() {
+        _showHistory.update { !it }
+    }
+
     companion object {
         const val MIN_COLUMNS = 1
         const val MIN_SCALE = 0.5f
@@ -166,7 +182,10 @@ class LeaderboardConfig {
     }
 }
 
-class LeaderboardViewModel(private val teamsRepository: TeamsRepository) : ViewModel() {
+class LeaderboardViewModel(
+    private val teamsRepository: TeamsRepository,
+    eventsRepository: EventsRepository,
+) : ViewModel() {
     // Null means "never successfully loaded yet" — once populated, a failed
     // refresh does NOT clear it, so the last good list stays on screen
     // undisturbed until a new fetch actually succeeds.
@@ -178,6 +197,15 @@ class LeaderboardViewModel(private val teamsRepository: TeamsRepository) : ViewM
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    // Unfiltered event feed backing the opt-in history pane (LeaderboardConfig.showHistory).
+    // Only fetched while the pane is actually shown (see setHistoryEnabled) —
+    // this screen often runs unattended for a long time, so there's no point
+    // polling an endpoint nobody's looking at.
+    val history = EventsFeed(viewModelScope, eventsRepository) { beforeId ->
+        eventsRepository.listPaginated(beforeId = beforeId)
+    }
+    private var historyEnabled = false
 
     init {
         refresh()
@@ -205,6 +233,14 @@ class LeaderboardViewModel(private val teamsRepository: TeamsRepository) : ViewM
                 _isLoading.value = false
             }
         }
+        if (historyEnabled) history.refresh()
+    }
+
+    /** Toggling the pane on triggers an immediate load; toggling off just stops refreshing it. */
+    fun setHistoryEnabled(enabled: Boolean) {
+        val wasEnabled = historyEnabled
+        historyEnabled = enabled
+        if (enabled && !wasEnabled) history.refresh()
     }
 
     companion object {
@@ -223,7 +259,7 @@ class LeaderboardViewModel(private val teamsRepository: TeamsRepository) : ViewM
 @Composable
 fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
     val di = localDI()
-    val viewModel = viewModel { LeaderboardViewModel(di.direct.instance()) }
+    val viewModel = viewModel { LeaderboardViewModel(di.direct.instance(), di.direct.instance()) }
     val teams by viewModel.teams.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isLoadingVm by viewModel.isLoading.collectAsState()
@@ -232,14 +268,53 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
     val columns by config.columns.collectAsState()
     val fontScale by config.fontScale.collectAsState()
     val showCrown by config.showCrown.collectAsState()
+    val showHistory by config.showHistory.collectAsState()
+    val isHistoryLoading by viewModel.history.isLoading.collectAsState()
 
     LaunchedEffect(config, viewModel) {
         config.refreshRequests.collect { viewModel.refresh() }
     }
-    LaunchedEffect(config, isLoadingVm) {
-        config.setLoading(isLoadingVm)
+    LaunchedEffect(viewModel, showHistory) {
+        viewModel.setHistoryEnabled(showHistory)
+    }
+    LaunchedEffect(config, isLoadingVm, isHistoryLoading, showHistory) {
+        config.setLoading(isLoadingVm || (showHistory && isHistoryLoading))
     }
 
+    val grid = @Composable {
+        LeaderboardGrid(
+            teams = teams,
+            errorMessage = errorMessage,
+            sortOrder = sortOrder,
+            columns = columns,
+            fontScale = fontScale,
+            showCrown = showCrown,
+            onRetry = { viewModel.refresh() },
+            onTeamClick = onTeamClick,
+        )
+    }
+    if (showHistory) {
+        VerticalSplitPane(
+            modifier = Modifier.fillMaxSize(),
+            top = grid,
+            bottom = { LeaderboardHistoryPane(viewModel.history) },
+        )
+    } else {
+        grid()
+    }
+}
+
+@Composable
+private fun LeaderboardGrid(
+    teams: List<Team>?,
+    errorMessage: String?,
+    sortOrder: TeamSortOrder,
+    columns: Int,
+    fontScale: Float,
+    showCrown: Boolean,
+    onRetry: () -> Unit,
+    onTeamClick: (Team) -> Unit,
+) {
     Box(Modifier.fillMaxSize().padding(vertical = 8.dp, horizontal = 16.dp)) {
         val currentTeams = teams
         val currentError = errorMessage
@@ -251,7 +326,7 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
                     stringResource(Res.string.public_load_error, currentError),
                     color = MaterialTheme.colorScheme.error,
                 )
-                Button(onClick = { viewModel.refresh() }) { Text(stringResource(Res.string.action_retry)) }
+                Button(onClick = onRetry) { Text(stringResource(Res.string.action_retry)) }
             }
 
             // First load still in flight: no centered spinner (the top bar
@@ -338,6 +413,52 @@ fun LeaderboardScreen(onTeamClick: (Team) -> Unit) {
                     }
                 }
                 EndVerticalScrollbar(rememberScrollbarAdapter(gridState))
+            }
+        }
+    }
+}
+
+/**
+ * Read-only, unfiltered event feed shown in [LeaderboardScreen]'s optional
+ * bottom pane (see [LeaderboardConfig.showHistory]) — same row rendering as
+ * [HistoryScreen] ([EventRow]), but never a delete button and no "load more":
+ * this is a glanceable "what just happened" feed, not a full history browser.
+ */
+@Composable
+private fun LeaderboardHistoryPane(feed: EventsFeed) {
+    val events by feed.events.collectAsState()
+    val errorMessage by feed.errorMessage.collectAsState()
+
+    Box(Modifier.fillMaxSize()) {
+        val currentEvents = events
+        val currentError = errorMessage
+        when {
+            // Never loaded successfully yet and it just failed — nothing else
+            // to show, so this is the one case that still surfaces an error.
+            currentEvents == null && currentError != null -> Text(
+                stringResource(Res.string.public_load_error, currentError),
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.align(Alignment.Center).padding(16.dp),
+            )
+
+            // First load still in flight: the top bar already shows a
+            // spinner — just nothing to render yet.
+            currentEvents == null -> Unit
+
+            currentEvents.isEmpty() -> Text(stringResource(Res.string.history_empty), modifier = Modifier.align(Alignment.Center))
+
+            else -> {
+                val listState = rememberLazyListState()
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                ) {
+                    items(currentEvents, key = { it.id }) { event ->
+                        EventRow(event, onDelete = null, modifier = Modifier.padding(bottom = 8.dp))
+                    }
+                }
+                EndVerticalScrollbar(rememberScrollbarAdapter(listState))
             }
         }
     }
@@ -484,6 +605,7 @@ fun LeaderboardTopBarActions() {
     val columns by config.columns.collectAsState()
     val fontScale by config.fontScale.collectAsState()
     val showCrown by config.showCrown.collectAsState()
+    val showHistory by config.showHistory.collectAsState()
     val isLoading by config.isLoading.collectAsState()
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var settingsExpanded by remember { mutableStateOf(false) }
@@ -554,6 +676,13 @@ fun LeaderboardTopBarActions() {
                         Icons.Filled.Diamond,
                         contentDescription = stringResource(Res.string.public_display_crown_toggle),
                         modifier = Modifier.alpha(if (showCrown) 1f else 0.38f),
+                    )
+                }
+                IconButton(onClick = config::toggleHistory) {
+                    Icon(
+                        Icons.Filled.History,
+                        contentDescription = stringResource(Res.string.public_display_history_toggle),
+                        modifier = Modifier.alpha(if (showHistory) 1f else 0.38f),
                     )
                 }
             }

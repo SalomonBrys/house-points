@@ -42,6 +42,7 @@
     <string name="public_display_font_decrease">Réduire la taille du texte</string>
     <string name="public_display_font_increase">Augmenter la taille du texte</string>
     <string name="public_display_crown_toggle">Afficher la couronne du premier</string>
+    <string name="public_display_history_toggle">Afficher l'historique en bas</string>
 
     <!-- Role home stubs -->
     <string name="welcome_message">Bienvenue, %1$s.</string>
