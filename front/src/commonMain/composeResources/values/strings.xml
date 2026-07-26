@@ -54,6 +54,8 @@
     <string name="history_filter_teachers_section">Enseignants</string>
     <string name="history_empty">Aucun événement pour le moment.</string>
     <string name="history_load_more">Charger plus</string>
+    <string name="history_confirm_delete_title">Supprimer la transaction ?</string>
+    <string name="history_confirm_delete_message">Voulez-vous vraiment supprimer cette transaction ?</string>
     <!-- Event timestamp display, e.g. "Vendredi 24 juillet à 10h45"; the day-of-week
          and month names are looked up by index (Monday-first, matching
          DayOfWeek.isoDayNumber, and calendar order respectively) rather than
