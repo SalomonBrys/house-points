@@ -1,11 +1,103 @@
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
+// See Color.kt for where these tones come from and their contrast rationale.
+private val LightColors: ColorScheme = lightColorScheme(
+    primary = Gold40,
+    onPrimary = Neutral100,
+    primaryContainer = Gold90,
+    onPrimaryContainer = Gold10,
+    inversePrimary = Gold80,
+    secondary = Plum40,
+    onSecondary = Neutral100,
+    secondaryContainer = Plum90,
+    onSecondaryContainer = Plum10,
+    tertiary = Indigo40,
+    onTertiary = Neutral100,
+    tertiaryContainer = Indigo90,
+    onTertiaryContainer = Indigo10,
+    background = Neutral98,
+    onBackground = Neutral10,
+    surface = Neutral98,
+    onSurface = Neutral10,
+    surfaceVariant = NeutralVariant90,
+    onSurfaceVariant = NeutralVariant30,
+    outline = NeutralVariant50,
+    outlineVariant = NeutralVariant80,
+    inverseSurface = Neutral20,
+    inverseOnSurface = Neutral95,
+    surfaceDim = Neutral87,
+    surfaceBright = Neutral98,
+    surfaceContainerLowest = Neutral100,
+    surfaceContainerLow = Neutral96,
+    surfaceContainer = Neutral94,
+    surfaceContainerHigh = Neutral92,
+    surfaceContainerHighest = Neutral90,
+    primaryFixed = Gold90,
+    primaryFixedDim = Gold80,
+    onPrimaryFixed = Gold10,
+    onPrimaryFixedVariant = Gold30,
+    secondaryFixed = Plum90,
+    secondaryFixedDim = Plum80,
+    onSecondaryFixed = Plum10,
+    onSecondaryFixedVariant = Plum30,
+    tertiaryFixed = Indigo90,
+    tertiaryFixedDim = Indigo80,
+    onTertiaryFixed = Indigo10,
+    onTertiaryFixedVariant = Indigo30,
+)
+
+private val DarkColors: ColorScheme = darkColorScheme(
+    primary = Gold80,
+    onPrimary = Gold20,
+    primaryContainer = Gold30,
+    onPrimaryContainer = Gold90,
+    inversePrimary = Gold40,
+    secondary = Plum80,
+    onSecondary = Plum20,
+    secondaryContainer = Plum30,
+    onSecondaryContainer = Plum90,
+    tertiary = Indigo80,
+    onTertiary = Indigo20,
+    tertiaryContainer = Indigo30,
+    onTertiaryContainer = Indigo90,
+    background = Neutral6,
+    onBackground = Neutral90,
+    surface = Neutral6,
+    onSurface = Neutral90,
+    surfaceVariant = NeutralVariant30,
+    onSurfaceVariant = NeutralVariant80,
+    outline = NeutralVariant60,
+    outlineVariant = NeutralVariant30,
+    inverseSurface = Neutral90,
+    inverseOnSurface = Neutral20,
+    surfaceDim = Neutral6,
+    surfaceBright = Neutral24,
+    surfaceContainerLowest = Neutral4,
+    surfaceContainerLow = Neutral10,
+    surfaceContainer = Neutral12,
+    surfaceContainerHigh = Neutral17,
+    surfaceContainerHighest = Neutral22,
+    primaryFixed = Gold90,
+    primaryFixedDim = Gold80,
+    onPrimaryFixed = Gold10,
+    onPrimaryFixedVariant = Gold30,
+    secondaryFixed = Plum90,
+    secondaryFixedDim = Plum80,
+    onSecondaryFixed = Plum10,
+    onSecondaryFixedVariant = Plum30,
+    tertiaryFixed = Indigo90,
+    tertiaryFixedDim = Indigo80,
+    onTertiaryFixed = Indigo10,
+    onTertiaryFixedVariant = Indigo30,
+)
+
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
-    val colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+    val colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors
     MaterialTheme(colorScheme = colorScheme, content = content)
 }

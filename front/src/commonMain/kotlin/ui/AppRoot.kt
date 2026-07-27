@@ -1,3 +1,5 @@
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +18,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.material3.DismissibleNavigationDrawer
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
@@ -35,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -51,12 +55,15 @@ import team_points.front.generated.resources.drawer_logout
 import team_points.front.generated.resources.history_title
 import team_points.front.generated.resources.history_title_filtered
 import team_points.front.generated.resources.login_title
+import team_points.front.generated.resources.logo_black
+import team_points.front.generated.resources.logo_white
 import team_points.front.generated.resources.nav_back
 import team_points.front.generated.resources.nav_open_menu
 import team_points.front.generated.resources.public_display_title
 import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.kodein.di.compose.localDI
 import org.kodein.di.direct
@@ -282,6 +289,15 @@ private fun AppDrawerContent(
     onLogout: () -> Unit,
 ) {
     ModalDrawerSheet {
+        // The school's own wordmark, swapped for the variant readable against
+        // this drawer's current background (same light/dark source as AppTheme).
+        Image(
+            painter = painterResource(if (isSystemInDarkTheme()) Res.drawable.logo_white else Res.drawable.logo_black),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 24.dp),
+        )
+        HorizontalDivider()
         NavigationDrawerItem(
             label = { Text(stringResource(Res.string.public_display_title)) },
             icon = { Icon(Icons.Filled.Slideshow, contentDescription = null) },
