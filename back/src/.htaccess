@@ -1,5 +1,16 @@
 RewriteEngine On
 
+# PHP runs here as CGI/FastCGI (not mod_php), so Apache withholds the
+# Authorization header from $_SERVER — it's not exposed to CGI scripts by
+# default. Re-export it as an env var before the rewrite below turns it into
+# REDIRECT_HTTP_AUTHORIZATION, which Slim's Headers::parseAuthorizationHeader()
+# already falls back to (vendor/slim/psr7). Without this rule every
+# JWT-protected route 401s with "Missing bearer token" in production, while
+# working fine against PHP's built-in dev server (see ARCHITECTURE.md §8),
+# which does expose the header natively.
+RewriteCond %{HTTP:Authorization} .
+RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # Route every request to public/index.php — no exceptions. It handles /api/*
 # and serves the compiled front end by reading individual files out of
 # static/ (see routes.php's catch-all route), so Apache never needs to serve
